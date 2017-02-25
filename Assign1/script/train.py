@@ -10,12 +10,11 @@ import pickle
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torchvision import datasets, transforms
-from models import baseline
+from model import *
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='B',
                     help='input batch size for training (default: 64)')
@@ -31,7 +30,7 @@ parser.add_argument('--momentum', type=float, default=.8, metavar='MM',
                     help='Learning rate (default: .01)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--model', default=baseline.Net, metavar='M',
+parser.add_argument('--model', default=Net, metavar='M',
                     help='Specify which model to use')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
