@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 from torchvision import datasets, transforms
-from model import *
+from models import *
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='B',
                     help='input batch size for training (default: 64)')
@@ -48,8 +48,7 @@ validset_import = pickle.load(open("../data/kaggle/validation.p", "rb"))
 train_loader = torch.utils.data.DataLoader(trainset_imoprt, batch_size=args.batch_size, shuffle=True)
 valid_loader = torch.utils.data.DataLoader(validset_import, batch_size=args.batch_size, shuffle=True)
 
-
-model = args.model()
+model = args.model.Net()
 
 # In[7]:
 
