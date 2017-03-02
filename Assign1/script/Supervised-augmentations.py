@@ -304,7 +304,7 @@ model.eval()
 for data, target in test_loader:
     data, target = Variable(data, volatile=True), Variable(target)
     output = model(data)
-    temp = output.data.max(1)[1].numpy().reshape(-1)
+    temp = output.data.cpu().max(1)[1].numpy().reshape(-1)
     label_predict = np.concatenate((label_predict, temp))
 
 # In[14]:
