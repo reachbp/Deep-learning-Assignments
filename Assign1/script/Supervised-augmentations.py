@@ -75,14 +75,15 @@ class NetBN(nn.Module):
 
 
 model = NetBN()
-
+if args.cuda:
+    model = model.cuda()
 # In[7]:
 
 # optim.SGD(params, lr=<object>, momentum=0, dampening=0, weight_decay=0)
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
 
 
-# optim.Adam(params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+#optimizer = optim.Adam(params, lr=0.01, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 # optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
 
@@ -189,7 +190,8 @@ def train_without_jitter(epoch):
         if args.cuda:
             data = data.cuda()
             target = target.cuda()
-        data, target = Variable(data), Variable(target)
+        
+	data, target = Variable(data), Variable(target)
 
 
         optimizer.zero_grad()
@@ -248,10 +250,8 @@ def validate(epoch, valid_loader):
 
     test_loss /= len(valid_loader)  # loss function already averages over batch size
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss.data.numpy()[0], correct, len(valid_loader.dataset),
+        test_loss.data.cpu().numpy()[0], correct, len(valid_loader.dataset),
         100. * correct / len(valid_loader.dataset)))
-
-
 def train_unlabeled(epoch):
     model.train()
     for batch_idx, (data, _) in enumerate(train_unlabeled_loader):
@@ -260,7 +260,7 @@ def train_unlabeled(epoch):
         data = Variable(data)
         optimizer.zero_grad()
         output = model(data)
-        target = Variable(torch.LongTensor(output.data.max(1)[1].numpy().reshape(-1)))
+        target = Variable(torch.LongTensor(output.data.cpu().max(1)[1].numpy().reshape(-1)).cuda())
         #         loss = my_criterion.forward(output, target, Variable(torch.LongTensor(epoch)),
         # Variable(torch.LongTensor(2)))
         #         my_criterion.backward(loss)
@@ -278,14 +278,14 @@ def train_unlabeled(epoch):
 
 # In[199]:
 
-for epoch in range(1, 60):
+for epoch in range(1, 80):
     train_without_jitter(epoch)
     train_with_jitter(epoch)
     if epoch == 40:
         pickle.dump(model, open("model_with_jitter.p", "wb"))
     if epoch > 40:
         train_unlabeled(epoch)
-    if epoch == 59:
+    if epoch == 79:
         pickle.dump(model, open("model_with_jitter_unlabeld.p", "wb"))
 
     validate(epoch, valid_loader)
@@ -295,6 +295,7 @@ for epoch in range(1, 60):
 # In[10]:
 
 testset = pickle.load(open("../data/kaggle/test.p", "rb"))
+
 
 test_loader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False)
 
