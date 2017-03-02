@@ -277,22 +277,23 @@ def train_unlabeled(epoch):
 
 
 # In[199]:
-
-for epoch in range(1, 80):
-    train_without_jitter(epoch)
-    train_with_jitter(epoch)
-    if epoch == 40:
-        pickle.dump(model, open("model_with_jitter.p", "wb"))
-    if epoch > 40:
-        train_unlabeled(epoch)
-    if epoch == 79:
-        pickle.dump(model, open("model_with_jitter_unlabeld.p", "wb"))
-
-    validate(epoch, valid_loader)
+#
+# for epoch in range(1, 80):
+#     train_without_jitter(epoch)
+#     train_with_jitter(epoch)
+#     if epoch == 40:
+#         pickle.dump(model, open("model_with_jitter.p", "wb"))
+#     if epoch > 40:
+#         train_unlabeled(epoch)
+#     if epoch == 79:
+#         pickle.dump(model, open("model_with_jitter_unlabeld.p", "wb"))
+#
+#     validate(epoch, valid_loader)
 
 # # Create Sample Submission
 
 # In[10]:
+model = pickle.load(open("good_model.p", "rb"))
 
 testset = pickle.load(open("../data/kaggle/test.p", "rb"))
 
