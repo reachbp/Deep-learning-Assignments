@@ -12,6 +12,14 @@ import torch.optim as optim
 from scipy import ndimage
 from torch.autograd import Variable
 from torchvision import transforms
+import argparse
+parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='enables CUDA training')
+args = parser.parse_args()
+
+args.cuda = not args.no_cuda and torch.cuda.is_available()
+
 
 # # Split Data
 
@@ -178,7 +186,11 @@ def to_tensor(npimg):
 def train_without_jitter(epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_labeled_loader):
+        if args.cuda:
+            data = data.cuda()
+            target = target.cuda()
         data, target = Variable(data), Variable(target)
+
 
         optimizer.zero_grad()
         output = model(data)
@@ -203,7 +215,9 @@ def train_with_jitter(epoch):
                 transforms.Lambda(lambda x: random_scale(x)),
                 transforms.Lambda(lambda x: to_tensor(x)),
             ])(data[i])
-
+        if args.cuda:
+            data = data.cuda()
+            target = target.cuda()
         data, target = Variable(data), Variable(target)
 
         optimizer.zero_grad()
@@ -222,6 +236,9 @@ def validate(epoch, valid_loader):
     test_loss = 0
     correct = 0
     for data, target in valid_loader:
+        if args.cuda:
+            data = data.cuda()
+            target = target.cuda()
         data, target = Variable(data, volatile=True), Variable(target)
         output = model(data)
         test_loss += F.nll_loss(output, target)
@@ -238,6 +255,8 @@ def validate(epoch, valid_loader):
 def train_unlabeled(epoch):
     model.train()
     for batch_idx, (data, _) in enumerate(train_unlabeled_loader):
+        if args.cuda:
+            data = data.cuda()
         data = Variable(data)
         optimizer.zero_grad()
         output = model(data)
@@ -262,10 +281,12 @@ def train_unlabeled(epoch):
 for epoch in range(1, 60):
     train_without_jitter(epoch)
     train_with_jitter(epoch)
-    pickle.dump(model, open("model_with_jitter.p", "wb"))
+    if epoch == 40:
+        pickle.dump(model, open("model_with_jitter.p", "wb"))
     if epoch > 40:
         train_unlabeled(epoch)
-    pickle.dump(model, open("model_with_jitter_unlabeld.p", "wb"))
+    if epoch == 59:
+        pickle.dump(model, open("model_with_jitter_unlabeld.p", "wb"))
 
     validate(epoch, valid_loader)
 
