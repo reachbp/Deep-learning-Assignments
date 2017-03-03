@@ -303,6 +303,9 @@ test_loader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False)
 label_predict = np.array([])
 model.eval()
 for data, target in test_loader:
+    if args.cuda:
+        data = data.cuda()
+        target = target.cuda()
     data, target = Variable(data, volatile=True), Variable(target)
     output = model(data)
     temp = output.data.cpu().max(1)[1].numpy().reshape(-1)
