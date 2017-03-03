@@ -275,7 +275,8 @@ def train_unlabeled(epoch):
         # Variable(torch.LongTensor(2)))
         #         my_criterion.backward(loss)
         loss = F.nll_loss(output, target)
-        loss.backward()
+        if epoch > 70:
+            loss.backward()
         optimizer.step()
         if batch_idx % 20 == 0:
             print('Train Unlabeled Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -291,12 +292,12 @@ def train_unlabeled(epoch):
 for epoch in range(1, 100):
     train_without_jitter(epoch)
     train_with_jitter(epoch)
-    if epoch == 40:
-        pickle.dump(model, open("model_labeled_mar3.p", "wb"))
-    if epoch > 50:
-        train_unlabeled(epoch)
+    train_unlabeled(epoch)
+
+    if epoch == 69:
+        pickle.dump(model, open("model_labeled_wu_mar3.p", "wb"))
     if epoch == 99:
-        pickle.dump(model, open("model_unlabeld_mar3.p", "wb"))
+        pickle.dump(model, open("model_unlabeld_wu_mar3.p", "wb"))
 
     validate(epoch, valid_loader)
 
