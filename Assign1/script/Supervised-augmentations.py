@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import argparse
 import pickle
 import random
 
@@ -12,14 +13,13 @@ import torch.optim as optim
 from scipy import ndimage
 from torch.autograd import Variable
 from torchvision import transforms
-import argparse
+
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 args = parser.parse_args()
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-
 
 # # Split Data
 
@@ -83,7 +83,7 @@ if args.cuda:
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
 
 
-#optimizer = optim.Adam(params, lr=0.01, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+# optimizer = optim.Adam(params, lr=0.01, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 # optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
 
@@ -174,6 +174,14 @@ def random_scale(npimg, min_scale=0.5, max_scale=1.5):
     return sc_img
 
 
+def random_gaussian_noise(npimg):
+    h, w = npimg.shape
+    mu, sigma = 0, 0.1
+    s = np.random.normal(mu, sigma, h * w)
+    s = s.reshape((h, w))
+    return npimg + s
+
+
 # Converts a HxW ndarray into a 1xHxW tensor
 def to_tensor(npimg):
     h, w = npimg.shape
@@ -190,9 +198,8 @@ def train_without_jitter(epoch):
         if args.cuda:
             data = data.cuda()
             target = target.cuda()
-        
-	data, target = Variable(data), Variable(target)
 
+        data, target = Variable(data), Variable(target)
 
         optimizer.zero_grad()
         output = model(data)
@@ -212,6 +219,7 @@ def train_with_jitter(epoch):
         for i in range(len(data)):
             data[i] = transforms.Compose([
                 transforms.Lambda(lambda x: to_npimg(x)),
+                transforms.Lambda(lambda x: random_gaussian_noise(x)),
                 transforms.Lambda(lambda x: random_translate(x)),
                 transforms.Lambda(lambda x: random_rotate(x)),
                 transforms.Lambda(lambda x: random_scale(x)),
@@ -252,6 +260,8 @@ def validate(epoch, valid_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss.data.cpu().numpy()[0], correct, len(valid_loader.dataset),
         100. * correct / len(valid_loader.dataset)))
+
+
 def train_unlabeled(epoch):
     model.train()
     for batch_idx, (data, _) in enumerate(train_unlabeled_loader):
@@ -296,7 +306,6 @@ def train_unlabeled(epoch):
 model = pickle.load(open("good_model.p", "rb"))
 
 testset = pickle.load(open("../data/kaggle/test.p", "rb"))
-
 
 test_loader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False)
 
