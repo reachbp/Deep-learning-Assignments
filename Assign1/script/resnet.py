@@ -7,6 +7,7 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from scipy import ndimage
@@ -20,11 +21,24 @@ args = parser.parse_args()
 
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
-# # Split Data
 
-# # Train Model
+class MyResNet(nn.Module):
+    def __init__(self):
+        super(MyResNet, self).__init__()
+        self.model = models.resnet34(pretrained=False)
+        self.model.fc = torch.nn.Linear(512, 10)
+        self.model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1,
+                                           bias=False)
+        self.model.maxpool = torch.nn.MaxPool2d(kernel_size=1, stride=1, padding=0)
+        self.model.avgpool = torch.nn.AvgPool2d(3)
 
-# In[4]:
+    def forward(self, x):
+        x = self.model.forward(x)
+        return F.log_softmax(x)
+
+model = MyResNet()
+if args.cuda:
+    model = model.cuda()
 
 trainset_labeled_import = pickle.load(open("../data/kaggle/train_labeled.p", "rb"))
 trainset_unlabeled_import = pickle.load(open("../data/kaggle/train_unlabeled.p", "rb"))
@@ -36,16 +50,6 @@ train_unlabeled_loader = torch.utils.data.DataLoader(trainset_unlabeled_import, 
 
 train_unlabeled_loader.dataset.train_labels = [-1 for i in range(len(train_unlabeled_loader.dataset.train_data))]
 valid_loader = torch.utils.data.DataLoader(validset_import, batch_size=128, shuffle=True)
-
-model = models.resnet34(pretrained=False)
-model.fc = torch.nn.Linear(512, 10)
-model.conv1 = torch.nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1,
-                              bias=False)
-model.maxpool = torch.nn.MaxPool2d(kernel_size=1, stride=1, padding=0)
-model.avgpool = torch.nn.AvgPool2d(3)
-if args.cuda:
-    model = model.cuda()
-# In[7]:
 
 # optim.SGD(params, lr=<object>, momentum=0, dampening=0, weight_decay=0)
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.8)
