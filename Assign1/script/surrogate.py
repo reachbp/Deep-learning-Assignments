@@ -223,6 +223,7 @@ for i in range(unlabeled_train_iterations):
     surrogate_dataset = torch.utils.data.TensorDataset(data, target)
     surrogate_dataset_loader = torch.utils.data.DataLoader(
         surrogate_dataset, batch_size=64, shuffle=True)
+    surrogate_dataset.target_tensor = target
     
     # Train for n epochs
     for j in range(1, unlabeled_train_epochs + 1):
