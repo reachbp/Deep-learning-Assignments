@@ -1,5 +1,3 @@
-3000
-750
 Train - Jitterfree Epoch: 1 [0/3000 (0%)]	Loss: 2.365511
 Train - Jitterfree Epoch: 1 [640/3000 (21%)]	Loss: 2.127644
 Train - Jitterfree Epoch: 1 [1280/3000 (43%)]	Loss: 1.581525
