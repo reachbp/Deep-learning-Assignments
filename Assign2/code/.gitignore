@@ -1,0 +1,8 @@
+
+
+*.pyc
+*.pyc
+../../Assign1/*
+../../Assign1/data ../../Assign1/script ../../Assign1/submission
+../../Assign1/data/kaggle/sample_submission.csv
+data.pyc model.pyc
