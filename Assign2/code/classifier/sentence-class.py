@@ -1,5 +1,6 @@
 __author__ = 'bharathipriyaa'
 
+
 import argparse
 import torch, pickle
 import numpy as np
@@ -71,26 +72,25 @@ def create_dataset():
     data_list = torch.from_numpy(data_list).long()
     labels_list = torch.from_numpy(alltrain_labels_list)
     train_dataset = torch.utils.data.TensorDataset(data_list, labels_list)
-    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=10, shuffle=True)
+    train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=64, shuffle=True)
     return train_dataset_loader
 
 vocab = pickle.load(open("vocab.p", "rb"))
 model = Net(ntoken=len(vocab.keys()), ninp=300)
-trainDataset_loader = create_dataset()
-print("Dataset loader init")
-
-
-
 if args.cuda:
     model.cuda()
-
+trainDataset_loader = create_dataset()
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 criterion = F.nll_loss
+
+
 def train(epoch):
     model.train()
     train_loss = 0
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
-        data, target = Variable(data), Variable(target[:,0])
+	if args.cuda:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)
         optimizer.zero_grad()
         output = model(data)
 
