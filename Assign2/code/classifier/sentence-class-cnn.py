@@ -27,6 +27,8 @@ parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='momentum')
+parser.add_argument('--emsize', type=int, default=30,
+                    help='embedding size')
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -70,26 +72,29 @@ class Net(nn.Module):
     def __init__(self, ntoken, ninp):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)
-        self.conv1 =  nn.Conv2d(10, 10, 5, stride = 1)
+        self.conv1 =  nn.Conv1d(1, 5, 5, stride = 1)
+	self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(10*300, 5)
+        self.fc2 = nn.Linear(10*3*13, 5)
 
 
     def forward(self, x):
         #print(x)
-        emb = self.embedding(x)
-        #print("Output from embedding layer", emb.size())
-        x = emb.view(-1, 10, 10, 30)
+        x = self.embedding(x)
+        print("Output from embedding layer", x.size())
+        #x = emb.view(-1, 10, 10, args.emsize)
+        print("Output after resize layer", x.size())
+        x = self.conv1(x)
+        print("Output after convolution layer", x.size())
+	x = self.maxpool(x, 2, 2)
+	print("Output after maxpool layer", x.size())
+        x = x.view(-1, 10*3*13)
         #print("Output after resize layer", x.size())
-        #x = self.conv1(x)
-        #print("Output after convolution layer", x.size())
-        x = x.view(-1, 100*300)
-        #print("Output after resize layer", x.size())
-        x = F.relu(self.fc1(x))
-        x = F.sigmoid(self.fc2(x))
+        #x = F.relu(self.fc1(x))
+        x = F.tanh(self.fc2(x))
         return F.log_softmax(x)
 
-model = Net(ntoken=len(vocab.keys()), ninp=300)
+model = Net(ntoken=len(vocab.keys()), ninp=args.emsize)
 if args.cuda:
     model.cuda()
 
@@ -120,8 +125,10 @@ def train(epoch):
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
 
 def test(epoch):
-    model.evaluate()
+    correct = 0    
     test_loss = 0
+    y_true =[]
+    y_pred = []
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
@@ -133,6 +140,7 @@ def test(epoch):
         correct += pred.eq(target.data).cpu().sum()
         y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
+    print(y_true)	
     print("Classification report")
     print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
