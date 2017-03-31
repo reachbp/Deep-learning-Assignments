@@ -62,9 +62,10 @@ def create_dataset():
         data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))] = alltrain_data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))]
     data_list = torch.from_numpy(data_list).long()
     labels_list = torch.from_numpy(alltrain_labels_list)
-
-    train_dataset = torch.utils.data.TensorDataset(data_list[1:8000], labels_list[1:8000])
-    valid_dataset = torch.utils.data.TensorDataset(data_list[8000:10000], labels_list[8000:10000])
+    l = len(data_list)
+    r = (int) (0.7 *l) 
+    train_dataset = torch.utils.data.TensorDataset(data_list[1:r], labels_list[1:r])
+    valid_dataset = torch.utils.data.TensorDataset(data_list[r:l], labels_list[r:l])
     train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True)
     return train_dataset_loader, val_dataset_loader

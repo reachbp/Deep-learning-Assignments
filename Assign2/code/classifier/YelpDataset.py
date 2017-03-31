@@ -4,12 +4,18 @@ __author__ = 'bharathipriyaa'
 import os, path, json, pprint
 import pickle, torch
 import numpy as np
-import re
+import re, argparse
 
+# Training settings
+parser = argparse.ArgumentParser(description='Processing Yelp Dataset ')
+parser.add_argument('--filename', type=str, default='dummy.json',
+                    help='filename  ')
+
+args = parser.parse_args()
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
-        self.idx2word = []
+        self.idx2word = ["null"]
         self.word2count = {}
 	
     def add_word(self, word):
@@ -45,23 +51,26 @@ class YelpDataset(object):
                 index_to_remove = self.dictionary.word2idx[word]
                 last_index = self.dictionary.__len__() - 1
                 last_word = self.dictionary.idx2word[last_index]
-                self.dictionary.idx2word[index_to_remove] = last_word
+                self.dictionary.idx2word[index_to_remove] = last_word 
                 self.dictionary.word2idx[last_word] = index_to_remove
-                self.dictionary.word2idx.__delitem__(word)
+                self.dictionary.word2idx[word] = 0
                 self.dictionary.idx2word.pop()
+		print(word)
         print("Reviews size in the vocabulary ",len(self.dictionary.word2idx.keys()), self.dictionary.__len__() )
-        print(self.dictionary.word2count)
+#        print(self.dictionary.word2count)
+
         for line in open(filename, 'r'):
             review = json.loads(line)
             self.data.append(self.tokenizeReviewText(review['text']))
-            self.target.append(review['stars']-1)
-
+            score = 1 if review['stars'] > 4 else 0
+ 	    self.target.append(score)
+	    
         print("============== All reviews read into list ==============")
 
 
         pickle.dump(self.data, open('data.pkl', 'wb'))
         pickle.dump(self.target, open('target.pkl', 'wb'))
-        print("Words in the vocabulary ",self.dictionary.word2idx )
+#        print("Words in the vocabulary ",self.dictionary.word2idx )
         pickle.dump(self.dictionary.word2idx, open('vocab.p', 'wb'))
         print("Data saved to pickle file")
 
@@ -73,14 +82,15 @@ class YelpDataset(object):
 
     def tokenizeReviewText(self, text):
         text = re.sub('[^A-Za-z0-9\s]+', ' ', text).lower()
-        numWords = len(text.split())
-        ids = np.zeros(numWords+1)
+       
+        ids = np.zeros(50)
         token = 0
         for word in text.split():
-            if word in self.dictionary.word2idx.keys():
-                ids[token] = self.dictionary.word2idx[word]
-                token += 1
-        return ids[0:50]
+	    if token >= 50:
+		break;
+            ids[token] = self.dictionary.word2idx[word]
+            token += 1
+        return ids
 
 class ReviewPair(object):
     def __init__(self, text, score):
@@ -89,7 +99,7 @@ class ReviewPair(object):
 
 
 def main():
-    filename = "../data/sentiment/dummy.json"
+    filename = args.filename
     dataset = YelpDataset(filename)
     dataset.loadDataset(filename)
 
