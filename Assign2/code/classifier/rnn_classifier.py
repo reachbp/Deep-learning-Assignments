@@ -37,7 +37,8 @@ class RNNModelComplex(nn.Module):
         super(RNNModelComplex, self).__init__()
         self.encoder = nn.Embedding(ntoken, ninp)
         self.rnn = getattr(nn, rnn_type)(ninp, nhid, nlayers, bias=False)
-        self.decoder = nn.Linear(nhid*bptt, 5)
+        self.decoder1 = nn.Linear(nhid*bptt, 5000)
+        self.decoder2 = nn.Linear(5000, 5)
         print("Decoder size has to be", batchsize*nhid*bptt)
         self.init_weights()
 
@@ -48,18 +49,21 @@ class RNNModelComplex(nn.Module):
     def init_weights(self):
         initrange = 0.1
         self.encoder.weight.data.uniform_(-initrange, initrange)
-        self.decoder.bias.data.fill_(0)
-        self.decoder.weight.data.uniform_(-initrange, initrange)
+        self.decoder1.bias.data.fill_(0)
+        self.decoder1.weight.data.uniform_(-initrange, initrange)
+        self.decoder2.bias.data.fill_(0)
+        self.decoder2.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, input, hidden):
         emb = self.encoder(input)
 
         output, hidden = self.rnn(emb, hidden)
-        print("Check point 1", output.size())
-        output = output.view(output.size(0),output.size(1)* output.size(2))
-        print("Check point 2", output.size())
-        decoded = self.decoder(output)
-        print("Check point 3", decoded.size())
+        #print("Check point 1", output.size())
+        output = output.view(-1,output.size(1)* output.size(2))
+        #print("Check point 2", output.size())
+        decoded = F.relu(self.decoder1(output))
+        decoded = F.sigmoid(self.decoder2(decoded))
+        #print("Check point 3", decoded.size())
         return F.log_softmax(decoded), hidden
 
     def init_hidden(self, bsz):
