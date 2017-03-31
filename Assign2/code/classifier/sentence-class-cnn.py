@@ -94,12 +94,11 @@ def train(epoch):
     model.train()
     train_loss = 0
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
-	if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        if args.cuda:
+                data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target[:,0])
         optimizer.zero_grad()
         output = model(data)
-
         loss = criterion(output, target)
         loss.backward()
         train_loss += loss.data[0]

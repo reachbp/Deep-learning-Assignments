@@ -27,9 +27,9 @@ parser.add_argument('--lr', type=float, default=20,
                     help='initial learning rate')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='momentum')
-parser.add_argument('--emsize', type=int, default=50,
+parser.add_argument('--emsize', type=int, default=30,
                     help='size of word embeddings')
-parser.add_argument('--model', type=str, default='GRU',
+parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
 parser.add_argument('--save', type=str,  default='model.pt',
                     help='path to save the final model')
@@ -70,9 +70,21 @@ trainDataset_loader = create_dataset()
 ###############################################################################
 
 ntokens = len(vocab.keys())
-model = rnnmodel.RNNModel(args.model, ntokens, args.emsize, args.nhid, 5)
+#model = rnnmodel.RNNModel( ntoken = ntokens, input_size=args.emsize, hidden_size= args.nhid, output_size= 5, batchsize = args.batch_size)
+
+model = rnnmodel.RNNModelComplex(args.model, ntoken = ntokens, ninp = args.emsize, nhid=args.nhid, nlayers=args.nlayers,
+                                batchsize = args.batch_size, bptt= args.bptt)
+
 if args.cuda:
     model.cuda()
+
+'''
+input = Variable(torch.Tensor(64,100))
+hidden = model.init_hidden(64)
+output = model(input, hidden)
+print(output.size())
+'''
+
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 criterion = F.nll_loss
@@ -90,24 +102,20 @@ def clip_gradient(model, clip):
     totalnorm = math.sqrt(totalnorm)
     return min(1, args.clip / (totalnorm + 1e-6))
 
-def repackage_hidden(h):
-    """Wraps hidden states in new Variables, to detach them from their history."""
-    if type(h) == Variable:
-        return Variable(h.data)
-    else:
-        return tuple(repackage_hidden(v) for v in h)
+
 
 def train(epoch):
     model.train()
     train_loss = 0
-    hidden = model.init_hidden(args.batch_size)
+    hidden = model.init_hidden(args.bptt)
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        hidden = repackage_hidden(hidden)
+
         model.zero_grad()
         output, hidden = model(data, hidden)
+        print(output.size(), target.size())
         loss = criterion(output, target)
         loss.backward()
 
