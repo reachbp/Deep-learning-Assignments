@@ -1,6 +1,6 @@
 __author__ = 'bharathipriyaa'
-
-
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
 import argparse
 import torch, pickle, math
 import numpy as np
@@ -21,6 +21,8 @@ parser.add_argument('--clip', type=float, default=0.5,
                     help='gradient clipping')
 parser.add_argument('--nhid', type=int, default=50,
                     help='humber of hidden units per layer')
+parser.add_argument('--epochs', type=int, default=6,
+                    help='upper epoch limit')
 parser.add_argument('--nlayers', type=int, default=1,
                     help='number of layers')
 parser.add_argument('--seed', type=int, default=1111,
@@ -121,7 +123,7 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
 
         hidden = repackage_hidden(hidden)
         model.zero_grad()
@@ -150,10 +152,12 @@ def test(epoch):
     test_loss = 0
     hidden = model.init_hidden(args.bptt)
     correct = 0
+    y_true = []
+    y_pred = []	
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
 
         hidden = repackage_hidden(hidden)
         output, hidden = model(data, hidden)
@@ -162,12 +166,15 @@ def test(epoch):
         test_loss += loss.data[0]
         pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
-
+	y_true.extend(target.data.cpu().numpy())
+        y_pred.extend(pred.cpu().numpy().squeeze())
+    print("Classification report") 
+    print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
     test_loss, correct, len(val_dataset_loader.dataset),
     100. * correct / len(val_dataset_loader.dataset)))
 
-for epoch in range(10):
+for epoch in range(args.epochs):
     train(epoch)
     test(epoch)
 

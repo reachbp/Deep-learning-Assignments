@@ -10,7 +10,7 @@ class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
         self.idx2word = []
-
+	
     def add_word(self, word):
         if word not in self.word2idx:
             self.idx2word.append(word)
@@ -50,19 +50,19 @@ class YelpDataset(object):
         print("Data saved to pickle file")
 
     def processReviewText(self, text):
-        text = re.sub('[^A-Za-z0-9\s]+', '', text).lower()
+        text = re.sub('[^A-Za-z0-9\s]+', ' ', text).lower()
         for word in text.split():
             self.dictionary.add_word(word)
 
     def tokenizeReviewText(self, text):
-        text = re.sub('[^A-Za-z0-9\s]+', '', text).lower()
+        text = re.sub('[^A-Za-z0-9\s]+', ' ', text).lower()
         numWords = len(text.split())
         ids = np.zeros(numWords+1)
         token = 0
         for word in text.split():
             ids[token] = self.dictionary.word2idx[word]
             token += 1
-        return ids[0:100]
+        return ids[0:50]
 
 class ReviewPair(object):
     def __init__(self, text, score):
@@ -71,7 +71,7 @@ class ReviewPair(object):
 
 
 def main():
-    filename = "../data/sentiment/dummy.json"
+    filename = "../data/sentiment/yelp_training_set_review.json"
     dataset = YelpDataset(filename)
     dataset.loadDataset(filename)
 
