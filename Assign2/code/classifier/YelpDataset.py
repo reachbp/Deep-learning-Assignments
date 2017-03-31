@@ -5,7 +5,7 @@ import os, path, json, pprint
 import pickle, torch
 import numpy as np
 import re, argparse
-
+import random
 # Training settings
 parser = argparse.ArgumentParser(description='Processing Yelp Dataset ')
 parser.add_argument('--filename', type=str, default='dummy.json',
@@ -45,7 +45,7 @@ class YelpDataset(object):
             self.processReviewText(review['text'])
 
         print("Size in the vocabulary ",len(self.dictionary.word2idx.keys()) )
-        # Prune words with frequency of 50 or less
+        # Prune words with frequency of 5 or less
         for word in self.dictionary.word2count.keys():
             if  self.dictionary.word2count[word] < 5:
                 index_to_remove = self.dictionary.word2idx[word]
@@ -55,14 +55,12 @@ class YelpDataset(object):
                 self.dictionary.word2idx[last_word] = index_to_remove
                 self.dictionary.word2idx[word] = 0
                 self.dictionary.idx2word.pop()
-		print(word)
-        print("Reviews size in the vocabulary ",len(self.dictionary.word2idx.keys()), self.dictionary.__len__() )
-#        print(self.dictionary.word2count)
-
+		
+        print("Size of vocabulary before & after pruning low-freq words ",len(self.dictionary.word2idx.keys()), self.dictionary.__len__() )
         for line in open(filename, 'r'):
             review = json.loads(line)
             self.data.append(self.tokenizeReviewText(review['text']))
-            score = 1 if review['stars'] > 4 else 0
+            score = bool(random.getrandbits(1)) if review['stars'] == 3 else ( 1 if review['stars'] > 4 else 0)
  	    self.target.append(score)
 	    
         print("============== All reviews read into list ==============")

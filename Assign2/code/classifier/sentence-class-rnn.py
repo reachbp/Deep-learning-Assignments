@@ -25,7 +25,7 @@ parser.add_argument('--epochs', type=int, default=6,
                     help='upper epoch limit')
 parser.add_argument('--nlayers', type=int, default=1,
                     help='number of layers')
-parser.add_argument('--seed', type=int, default=1111,
+parser.add_argument('--seed', type=int, default=1234,
                     help='random seed')
 parser.add_argument('--lr', type=float, default=0.01,
                     help='initial learning rate')
@@ -33,7 +33,7 @@ parser.add_argument('--momentum', type=float, default=0.9,
                     help='momentum')
 parser.add_argument('--emsize', type=int, default=30,
                     help='size of word embeddings')
-parser.add_argument('--model', type=str, default='LSTM',
+parser.add_argument('--model', type=str, default='GRU',
                     help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
 parser.add_argument('--save', type=str,  default='model.pt',
                     help='path to save the final model')
@@ -159,13 +159,13 @@ def test(epoch):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-
         hidden = repackage_hidden(hidden)
         output, hidden = model(data, hidden)
         loss = criterion(output, target)
         loss.backward()
         test_loss += loss.data[0]
         pred = output.data.max(1)[1] # get the index of the max log-probability
+	print(pred)
         correct += pred.eq(target.data).cpu().sum()
 	y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
