@@ -2,7 +2,7 @@ __author__ = 'bharathipriyaa'
 
 
 import argparse
-import torch, pickle
+import torch, pickle, math
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,13 +17,15 @@ parser.add_argument('--bptt', type=int, default=100,
                     help='sequence length')
 parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
+parser.add_argument('--clip', type=float, default=0.5,
+                    help='gradient clipping')
 parser.add_argument('--nhid', type=int, default=50,
                     help='humber of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=1,
                     help='number of layers')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
-parser.add_argument('--lr', type=float, default=20,
+parser.add_argument('--lr', type=float, default=0.01,
                     help='initial learning rate')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='momentum')
@@ -58,12 +60,15 @@ def create_dataset():
         data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))] = alltrain_data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))]
     data_list = torch.from_numpy(data_list).long()
     labels_list = torch.from_numpy(alltrain_labels_list)
-    train_dataset = torch.utils.data.TensorDataset(data_list, labels_list)
+
+    train_dataset = torch.utils.data.TensorDataset(data_list[1:8000], labels_list[1:8000])
+    valid_dataset = torch.utils.data.TensorDataset(data_list[8000:10000], labels_list[8000:10000])
     train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    return train_dataset_loader
+    val_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True)
+    return train_dataset_loader, val_dataset_loader
 
 vocab = pickle.load(open("vocab.p", "rb"))
-trainDataset_loader = create_dataset()
+trainDataset_loader, val_dataset_loader = create_dataset()
 
 ###############################################################################
 # Build the model
@@ -102,7 +107,12 @@ def clip_gradient(model, clip):
     totalnorm = math.sqrt(totalnorm)
     return min(1, args.clip / (totalnorm + 1e-6))
 
-
+def repackage_hidden(h):
+    """Wraps hidden states in new Variables, to detach them from their history."""
+    if type(h) == Variable:
+        return Variable(h.data)
+    else:
+        return tuple(repackage_hidden(v) for v in h)
 
 def train(epoch):
     model.train()
@@ -111,19 +121,21 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = Variable(data), Variable(target[:,0])
 
+        hidden = repackage_hidden(hidden)
         model.zero_grad()
+
         output, hidden = model(data, hidden)
-        print(output.size(), target.size())
+        #print(output, target)
+        #print(output.size(), target.size())
         loss = criterion(output, target)
         loss.backward()
 
         #### Clip gradients
-        clipped_lr = lr * clip_gradient(model, args.clip)
+        clipped_lr = args.lr * clip_gradient(model, args.clip)
         for p in model.parameters():
             p.data.add_(-clipped_lr, p.grad.data)
-
 
         train_loss += loss.data[0]
         optimizer.step()
@@ -133,6 +145,29 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(trainDataset_loader.dataset),
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
 
+def test(epoch):
+
+    test_loss = 0
+    hidden = model.init_hidden(args.bptt)
+    correct = 0
+    for batch_idx, (data, target) in enumerate(val_dataset_loader):
+        if args.cuda:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target[:,0])
+
+        hidden = repackage_hidden(hidden)
+        output, hidden = model(data, hidden)
+        loss = criterion(output, target)
+        loss.backward()
+        test_loss += loss.data[0]
+        pred = output.data.max(1)[1] # get the index of the max log-probability
+        correct += pred.eq(target.data).cpu().sum()
+
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    test_loss, correct, len(val_dataset_loader.dataset),
+    100. * correct / len(val_dataset_loader.dataset)))
+
 for epoch in range(10):
     train(epoch)
+    test(epoch)
 
