@@ -1,7 +1,7 @@
 import os
 import torch
 import numpy as np
-GLOVE_DIR = "../glove.6B"
+GLOVE_DIR = "../glove"
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
