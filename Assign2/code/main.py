@@ -41,6 +41,8 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='model.pt',
                     help='path to save the final model')
+parser.add_argument('--pretrained', action='store_true',
+                    help='use pretrained glove vectors')
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -50,7 +52,7 @@ torch.manual_seed(args.seed)
 # Load data
 ###############################################################################
 
-corpus = data.Corpus(args.data)
+corpus = data.Corpus(args.data, args.pretrained, args.emsize)
 
 def batchify(data, bsz):
     nbatch = data.size(0) // bsz
@@ -70,8 +72,8 @@ test_data = batchify(corpus.test, eval_batch_size)
 ###############################################################################
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid,
-        args.nlayers, args.dropout, args.tied)
+
+model = model.RNNModelGlove(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied, embeddingWeights = corpus.embedmatrix)
 if args.cuda:
     model.cuda()
 
@@ -149,6 +151,7 @@ def train():
             start_time = time.time()
 
 
+
 # Loop over epochs.
 lr = args.lr
 prev_val_loss = None
@@ -173,6 +176,10 @@ print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
+
+
+print("Print the embedding matrix")
+
 if args.save != '':
     with open(args.save, 'wb') as f:
         torch.save(model, f)

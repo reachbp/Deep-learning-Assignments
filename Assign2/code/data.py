@@ -1,6 +1,7 @@
 import os
 import torch
-
+import numpy as np
+GLOVE_DIR = "../glove.6B"
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -17,11 +18,37 @@ class Dictionary(object):
 
 
 class Corpus(object):
-    def __init__(self, path):
+    def __init__(self, path, pretrained = False, emsize = 50):
+
+
         self.dictionary = Dictionary()
         self.train = self.tokenize(os.path.join(path, 'train.txt'))
         self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
         self.test = self.tokenize(os.path.join(path, 'test.txt'))
+        self.pretrained = pretrained
+        self.emsize = emsize
+        self.embedmatrix = None
+        if pretrained :
+            self.embedmatrix = self.getEmbedding(self.dictionary, emsize)
+
+    def getEmbedding(self, dictionary = None, emsize = 50):
+        """
+        :param dictionary: Dictionary which holds the mapping from id->word
+        :param emsize: Size of the embedding
+        :return: Embedding matrix of size len(dictionary)xemsize
+        """
+        embeddings_matrix = np.zeros((len(dictionary), emsize))
+        f = open(os.path.join(GLOVE_DIR, 'glove.6B.50d.txt'))
+        for line in f:
+            values = line.split()
+            word = values[0]
+            if word in dictionary.word2idx.keys():
+                index = dictionary.word2idx[word]
+                embeddings_matrix[index] = np.asarray(values[1:], dtype='float32')
+        print("Generated the embeddings matrix ")
+        print(embeddings_matrix)
+        f.close()
+
 
     def tokenize(self, path):
         """Tokenizes a text file."""
