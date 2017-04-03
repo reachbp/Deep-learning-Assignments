@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-
+import numpy as np
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
 
@@ -60,8 +60,8 @@ class RNNModelGlove(nn.Module):
 
     def init_weights(self, embeddingWeights = None):
         initrange = 0.1
-        if embeddingWeights :
-            self.encoder.weight.data =embeddingWeights
+        if type(embeddingWeights) is np.ndarray:
+            self.encoder.weight.data = torch.from_numpy(embeddingWeights).float()
             self.encoder.requires_grad = False
         else :
             self.encoder.weight.data.uniform_(-initrange, initrange)

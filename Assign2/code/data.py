@@ -30,6 +30,7 @@ class Corpus(object):
         self.embedmatrix = None
         if pretrained :
             self.embedmatrix = self.getEmbedding(self.dictionary, emsize)
+            print(type(self.embedmatrix))
 
     def getEmbedding(self, dictionary = None, emsize = 50):
         """
@@ -39,15 +40,17 @@ class Corpus(object):
         """
         embeddings_matrix = np.zeros((len(dictionary), emsize))
         f = open(os.path.join(GLOVE_DIR, 'glove.6B.50d.txt'))
+        f = open(os.path.join('./data/penn/', 'embedMatrix.txt'))
         for line in f:
             values = line.split()
             word = values[0]
             if word in dictionary.word2idx.keys():
                 index = dictionary.word2idx[word]
                 embeddings_matrix[index] = np.asarray(values[1:], dtype='float32')
-        print("Generated the embeddings matrix ")
+        print("Generated the embeddings matrix ", embeddings_matrix.shape)
         print(embeddings_matrix)
         f.close()
+        return embeddings_matrix
 
 
     def tokenize(self, path):
@@ -73,3 +76,17 @@ class Corpus(object):
                     token += 1
 
         return ids
+
+
+def main():
+    corpus = Corpus('./data/penn', pretrained = True)
+    """ Saved the embedding matrix along with words """
+    with open('./data/penn/embedMatrix.txt', 'w') as f:
+        for word in corpus.dictionary.word2idx.keys():
+            index = corpus.dictionary.word2idx[word]
+            line = word + ' '
+            val = ' '.join("%f" % x for x in corpus.embedmatrix[index])
+            f.write(line)
+            f.write(val + '\n')
+
+    f.close()
