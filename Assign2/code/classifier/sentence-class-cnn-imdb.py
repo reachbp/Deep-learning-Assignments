@@ -93,7 +93,7 @@ class Net(nn.Module):
         self.conv1 =  nn.Conv1d(100, 10, 10, stride = 3)
         self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(5*3, 2)
+        self.fc2 = nn.Linear(5*48, 2)
 
 
     def forward(self, x):
@@ -105,9 +105,9 @@ class Net(nn.Module):
         x = self.conv1(x)
         #print("Output after convolution layer", x.size())
         x = self.maxpool(x, 2, 2)
-        print("Output after maxpool layer", x.size())
-        x = x.view(-1, 5*3)
-       # print("Output after resize layer", x.size())
+        #print("Output after maxpool layer", x.size())
+        x = x.view(-1, 5*48)
+        #print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
 
@@ -130,10 +130,10 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
         optimizer.zero_grad()
         output = model(data)
-        reconstruct_wrong_sent(data.data, output.data, target.data)
+        #reconstruct_wrong_sent(data.data, output.data, target.data)
         loss = criterion(output, target)
         loss.backward()
         train_loss += loss.data[0]
@@ -152,7 +152,7 @@ def test(epoch):
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
         output = model(data)
         loss = criterion(output, target)
         if epoch > 10:
