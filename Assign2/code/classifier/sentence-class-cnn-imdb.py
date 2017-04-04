@@ -134,7 +134,7 @@ def test(epoch):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        print(target)
+        #print(target)
         output = model(data)
         loss = criterion(output, target)
         test_loss += loss.data[0]
