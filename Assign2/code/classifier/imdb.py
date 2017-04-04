@@ -61,9 +61,9 @@ class ImdbDataset(object):
             review = ','.join(line[1:])
             self.data.append(self.tokenizeReviewText(review))
  	    if line[0] == "pos":
-                self.target.append(1.0)
+                self.target.append(1)
             else:
-                self.target.append(0.0)
+                self.target.append(0)
 	    
         print("============== All reviews read into list ==============")
 
