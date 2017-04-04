@@ -61,7 +61,7 @@ def create_dataset():
     val_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True)
     return train_dataset_loader, val_dataset_loader
 
-vocab = pickle.load(open("vocab.p", "rb"))
+vocab = pickle.load(open("vocab_imdb.p", "rb"))
 trainDataset_loader, val_dataset_loader = create_dataset()
 
 ###############################################################################
