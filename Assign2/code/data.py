@@ -39,8 +39,8 @@ class Corpus(object):
         :return: Embedding matrix of size len(dictionary)xemsize
         """
         embeddings_matrix = np.zeros((len(dictionary), emsize))
-        f = open(os.path.join(GLOVE_DIR, 'glove.6B.50d.txt'))
-        f = open(os.path.join('./data/penn/', 'embedMatrix.txt'))
+        f = open(os.path.join(GLOVE_DIR, 'glove.6B.{}d.txt'.format(emsize)))
+        #f = open(os.path.join('./data/penn/', 'embedMatrix.txt'))
         for line in f:
             values = line.split()
             word = values[0]
@@ -48,7 +48,7 @@ class Corpus(object):
                 index = dictionary.word2idx[word]
                 embeddings_matrix[index] = np.asarray(values[1:], dtype='float32')
         print("Generated the embeddings matrix ", embeddings_matrix.shape)
-        print(embeddings_matrix)
+
         f.close()
         return embeddings_matrix
 
@@ -79,14 +79,15 @@ class Corpus(object):
 
 
 def main():
-    corpus = Corpus('./data/penn', pretrained = True)
+    emsize = 200
+    corpus = Corpus('./data/penn', pretrained = True, emsize = emsize)
     """ Saved the embedding matrix along with words """
-    with open('./data/penn/embedMatrix.txt', 'w') as f:
+    with open('./data/penn/embedMatrix{}.txt'.format(emsize), 'w') as f:
         for word in corpus.dictionary.word2idx.keys():
             index = corpus.dictionary.word2idx[word]
             line = word + ' '
             val = ' '.join("%f" % x for x in corpus.embedmatrix[index])
             f.write(line)
             f.write(val + '\n')
-
     f.close()
+main()
