@@ -1,0 +1,5 @@
+| epoch   1 |   200/ 2323 batches | lr 20.00 | ms/batch 10.16 | loss  6.63 | ppl   755.04
+| epoch   1 |   400/ 2323 batches | lr 20.00 | ms/batch  7.39 | loss  5.95 | ppl   382.08
+| epoch   1 |   600/ 2323 batches | lr 20.00 | ms/batch  7.38 | loss  5.71 | ppl   300.64
+| epoch   1 |   800/ 2323 batches | lr 20.00 | ms/batch  7.38 | loss  5.59 | ppl   267.26
+| epoch   1 |  1000/ 2323 batches | lr 20.00 | ms/batch  7.39 | loss  5.51 | ppl   247.33

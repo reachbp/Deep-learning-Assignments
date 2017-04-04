@@ -39,8 +39,8 @@ class Corpus(object):
         :return: Embedding matrix of size len(dictionary)xemsize
         """
         embeddings_matrix = np.zeros((len(dictionary), emsize))
-        f = open(os.path.join(GLOVE_DIR, 'glove.6B.{}d.txt'.format(emsize)))
-        #f = open(os.path.join('./data/penn/', 'embedMatrix.txt'))
+        #f = open(os.path.join(GLOVE_DIR, 'glove.6B.{}d.txt'.format(emsize)))
+        f = open(os.path.join('./data/penn/', 'embedMatrix{}.txt'.format(emsize)))
         for line in f:
             values = line.split()
             word = values[0]
@@ -79,7 +79,7 @@ class Corpus(object):
 
 
 def main():
-    emsize = 200
+    emsize = 300
     corpus = Corpus('./data/penn', pretrained = True, emsize = emsize)
     """ Saved the embedding matrix along with words """
     with open('./data/penn/embedMatrix{}.txt'.format(emsize), 'w') as f:
@@ -90,4 +90,4 @@ def main():
             f.write(line)
             f.write(val + '\n')
     f.close()
-main()
+

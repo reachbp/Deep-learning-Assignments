@@ -62,7 +62,7 @@ class RNNModelGlove(nn.Module):
         initrange = 0.1
         if type(embeddingWeights) is np.ndarray:
             self.encoder.weight.data = torch.from_numpy(embeddingWeights).float()
-            self.encoder.requires_grad = False
+            #self.encoder.requires_grad = False
         else :
             self.encoder.weight.data.uniform_(-initrange, initrange)
         self.decoder.bias.data.fill_(0)
