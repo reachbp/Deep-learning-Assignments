@@ -23,7 +23,7 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='batch size')
 parser.add_argument('--epochs', type=int, default=10, metavar='N',
                     help='epochs')
-parser.add_argument('--lr', type=float, default=20,
+parser.add_argument('--lr', type=float, default=.5,
                     help='initial learning rate')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='momentum')
@@ -75,7 +75,7 @@ class Net(nn.Module):
         self.conv1 =  nn.Conv1d(100, 5, 5, stride = 1)
         self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(2*13, 5)
+        self.fc2 = nn.Linear(18944/64, 5)
 
 
     def forward(self, x):
@@ -85,11 +85,11 @@ class Net(nn.Module):
         #x = emb.view(-1, 10, 10, args.emsize)
         #print("Output after resize layer", x.size())
         x = self.conv1(x)
-        #print("Output after convolution layer", x.size())
+       # print("Output after convolution layer", x.size())
         x = self.maxpool(x, 2, 2)
-        #print("Output after maxpool layer", x.size())
-        x = x.view(-1, 2*13)
-        #print("Output after resize layer", x.size())
+       # print("Output after maxpool layer", x.size())
+        x = x.view(-1, 18944/64)
+       # print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
         x = F.tanh(self.fc2(x))
         return F.log_softmax(x)
@@ -99,7 +99,7 @@ if args.cuda:
     model.cuda()
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-criterion = F.nll_loss
+criterion = F.cross_entropy
 
 ###############################################################################
 # Training code
@@ -111,7 +111,7 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
         optimizer.zero_grad()
         output = model(data)
         loss = criterion(output, target)
@@ -119,7 +119,7 @@ def train(epoch):
         train_loss += loss.data[0]
         optimizer.step()
 
-        if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(trainDataset_loader.dataset),
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
@@ -132,7 +132,7 @@ def test(epoch):
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target[:,0])
+        data, target = Variable(data), Variable(target)
         output = model(data)
         loss = criterion(output, target)
         test_loss += loss.data[0]
@@ -140,7 +140,8 @@ def test(epoch):
         correct += pred.eq(target.data).cpu().sum()
         y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
-    print(y_true)	
+        #print(y_pred)
+    #print(y_true)	
     print("Classification report")
     print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
