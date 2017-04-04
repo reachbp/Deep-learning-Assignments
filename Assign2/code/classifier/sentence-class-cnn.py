@@ -45,8 +45,8 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 ###############################################################################
 
 def create_dataset():
-    alltrain_data_list = pickle.load(open("data.pkl", "rb"))
-    alltrain_labels_list = np.array(pickle.load(open("target.pkl", "rb")))
+    alltrain_data_list = pickle.load(open("data_imdb.pkl", "rb"))
+    alltrain_labels_list = np.array(pickle.load(open("target_imdb.pkl", "rb")))
     data_list = np.ndarray((len(alltrain_data_list),args.bptt))
     
     for idx, data in enumerate(alltrain_data_list):
@@ -72,7 +72,7 @@ class Net(nn.Module):
     def __init__(self, ntoken, ninp):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)
-        self.conv1 =  nn.Conv1d(1, 5, 5, stride = 1)
+        self.conv1 =  nn.Conv1d(100, 5, 5, stride = 1)
 	self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
         self.fc2 = nn.Linear(10*3*13, 5)
