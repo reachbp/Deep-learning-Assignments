@@ -63,6 +63,24 @@ def create_dataset():
 
 vocab = pickle.load(open("vocab_imdb.p", "rb"))
 trainDataset_loader, val_dataset_loader = create_dataset()
+idx2word = pickle.load(open("idx2word.pkl", "rb"))
+###############################################################################
+# Evaluating  samples
+###############################################################################
+
+def reconstruct_wrong_sent(input, output, target) :
+    print(input.size(),output.size(),target.size() )
+    assert(input.size(0) == output.size(0) and input.size(0) == target.size(0))
+    for idx, sentence in enumerate(input):
+        sentence = ''
+        for index in input[idx]:
+            word = idx2word[index]
+            sentence += ' ' + word
+
+        predicted, target = np.argmax(output[idx]), target[idx]
+        if predicted != target:
+            print("Review is ", sentence )
+            print("Predicted = {}  Target = {}".format(predicted, target))
 
 ###############################################################################
 # Build the model
@@ -75,7 +93,7 @@ class Net(nn.Module):
         self.conv1 =  nn.Conv1d(100, 10, 10, stride = 3)
         self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(240, 5)
+        self.fc2 = nn.Linear(5*3, 2)
 
 
     def forward(self, x):
@@ -87,8 +105,8 @@ class Net(nn.Module):
         x = self.conv1(x)
         #print("Output after convolution layer", x.size())
         x = self.maxpool(x, 2, 2)
-        #print("Output after maxpool layer", x.size())
-        x = x.view(-1, 240)
+        print("Output after maxpool layer", x.size())
+        x = x.view(-1, 5*3)
        # print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -112,9 +130,10 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = Variable(data), Variable(target[:,0])
         optimizer.zero_grad()
         output = model(data)
+        reconstruct_wrong_sent(data.data, output.data, target.data)
         loss = criterion(output, target)
         loss.backward()
         train_loss += loss.data[0]
@@ -133,10 +152,11 @@ def test(epoch):
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
-        #print(target)
+        data, target = Variable(data), Variable(target[:,0])
         output = model(data)
         loss = criterion(output, target)
+        if epoch > 10:
+            reconstruct_wrong_sent(data.data, output.data, target.data)
         test_loss += loss.data[0]
         pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
@@ -151,3 +171,6 @@ def test(epoch):
 for epoch in range(args.epochs):
     train(epoch)
     test(epoch)
+
+
+
