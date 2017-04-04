@@ -73,22 +73,22 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)
         self.conv1 =  nn.Conv1d(100, 5, 5, stride = 1)
-	self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
+        self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(1664, 5)
+        self.fc2 = nn.Linear(2*13, 5)
 
 
     def forward(self, x):
         #print(x)
         x = self.embedding(x)
-        print("Output from embedding layer", x.size())
+        #print("Output from embedding layer", x.size())
         #x = emb.view(-1, 10, 10, args.emsize)
-        print("Output after resize layer", x.size())
+        #print("Output after resize layer", x.size())
         x = self.conv1(x)
-        print("Output after convolution layer", x.size())
-	x = self.maxpool(x, 2, 2)
-	print("Output after maxpool layer", x.size())
-        x = x.view(-1, 1664)
+        #print("Output after convolution layer", x.size())
+        x = self.maxpool(x, 2, 2)
+        #print("Output after maxpool layer", x.size())
+        x = x.view(-1, 2*13)
         #print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
         x = F.tanh(self.fc2(x))
@@ -111,7 +111,7 @@ def train(epoch):
     for batch_idx, (data, target) in enumerate(trainDataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = Variable(data), Variable(target[:,0])
         optimizer.zero_grad()
         output = model(data)
         loss = criterion(output, target)
@@ -132,10 +132,10 @@ def test(epoch):
     for batch_idx, (data, target) in enumerate(val_dataset_loader):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = Variable(data), Variable(target[:,0])
         output = model(data)
         loss = criterion(output, target)
-	test_loss += loss.data[0]
+        test_loss += loss.data[0]
         pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
         y_true.extend(target.data.cpu().numpy())
