@@ -13,7 +13,7 @@ from torch.autograd import Variable
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--bptt', type=int, default=100,
+parser.add_argument('--bptt', type=int, default=10,
                     help='sequence length')
 parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
@@ -90,9 +90,9 @@ class Net(nn.Module):
     def __init__(self, ntoken, ninp):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)
-        self.conv1 =  nn.Conv1d(100, 10, 10, stride = 1)
-        self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
-        self.fc1 = nn.Linear(5*145, 5*30)
+        self.conv1 =  nn.Conv1d(10, 10, 10, stride = 1)
+        self.maxpool = F.max_pool1d # nn.Conv2d(10, 10, 5, stride = 1)
+        self.fc1 = nn.Linear(5*145*2, 5*30)
         self.fc2 = nn.Linear(5*30, 2)
 
 
@@ -106,7 +106,7 @@ class Net(nn.Module):
         #print("Output after convolution layer", x.size())
         x = self.maxpool(x, 2, 2)
         #print("Output after maxpool layer", x.size())
-        x = x.view(-1, 5*145)
+        x = x.view(-1, 5*145*2)
         #print("Output after resize layer", x.size())
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
