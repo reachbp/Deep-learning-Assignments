@@ -13,7 +13,7 @@ from torch.autograd import Variable
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--bptt', type=int, default=10,
+parser.add_argument('--bptt', type=int, default=30,
                     help='sequence length')
 parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
@@ -90,10 +90,10 @@ class Net(nn.Module):
     def __init__(self, ntoken, ninp):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(ntoken, ninp)
-        self.conv1 =  nn.Conv1d(10, 10, 10, stride = 1)
+        self.conv1 =  nn.Conv1d(args.bptt, 10, 10, stride = 1)
         self.maxpool = F.max_pool1d # nn.Conv2d(10, 10, 5, stride = 1)
-        self.fc1 = nn.Linear(5*145*2, 5*30)
-        self.fc2 = nn.Linear(5*30, 2)
+        self.fc1 = nn.Linear(5*145*2, 5*30*4)
+        self.fc2 = nn.Linear(5*30*4, 2)
 
 
     def forward(self, x):
