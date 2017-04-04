@@ -91,7 +91,8 @@ class Net(nn.Module):
         x = x.view(-1, 240)
        # print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
-        x = F.tanh(self.fc2(x))
+        x = F.relu(self.fc2(x))
+
         return F.log_softmax(x)
 
 model = Net(ntoken=len(vocab.keys()), ninp=args.emsize)
@@ -133,6 +134,7 @@ def test(epoch):
         if args.cuda:
                 data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
+        print(target)
         output = model(data)
         loss = criterion(output, target)
         test_loss += loss.data[0]
@@ -140,8 +142,6 @@ def test(epoch):
         correct += pred.eq(target.data).cpu().sum()
         y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
-        #print(y_pred)
-    #print(y_true)	
     print("Classification report")
     print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(

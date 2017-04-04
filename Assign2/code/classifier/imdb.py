@@ -60,18 +60,18 @@ class ImdbDataset(object):
             line = line.split(',')
             review = ','.join(line[1:])
             self.data.append(self.tokenizeReviewText(review))
- 	    if line[0] == "pos":
+ 	    if "pos" in line[0]:
                 self.target.append(1)
             else:
-                self.target.append(0)
+                self.target.append(2)
 	    
         print("============== All reviews read into list ==============")
 
 
-        pickle.dump(self.data, open('data_imdb.pkl', 'wb'), protocol=2)
-        pickle.dump(self.target, open('target_imdb.pkl', 'wb'), protocol=2)
+        pickle.dump(self.data, open('data_imdb.pkl', 'wb'))
+        pickle.dump(self.target, open('target_imdb.pkl', 'wb'))
 #        print("Words in the vocabulary ",self.dictionary.word2idx )
-        pickle.dump(self.dictionary.word2idx, open('vocab_imdb.p', 'wb'), protocol=2)
+        pickle.dump(self.dictionary.word2idx, open('vocab_imdb.p', 'wb'))
         print("Data saved to pickle file")
 
     def processReviewText(self, text):
