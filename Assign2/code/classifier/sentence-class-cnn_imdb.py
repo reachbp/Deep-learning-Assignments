@@ -75,7 +75,7 @@ class Net(nn.Module):
         self.conv1 =  nn.Conv1d(100, 5, 5, stride = 1)
 	self.maxpool = F.max_pool2d # nn.Conv2d(10, 10, 5, stride = 1)
         self.fc1 = nn.Linear(100*300, 10*300)
-        self.fc2 = nn.Linear(10*3*13, 5)
+        self.fc2 = nn.Linear(1664, 5)
 
 
     def forward(self, x):
@@ -88,7 +88,7 @@ class Net(nn.Module):
         print("Output after convolution layer", x.size())
 	x = self.maxpool(x, 2, 2)
 	print("Output after maxpool layer", x.size())
-        x = x.view(-1, 10*3*13)
+        x = x.view(-1, 1664)
         #print("Output after resize layer", x.size())
         #x = F.relu(self.fc1(x))
         x = F.tanh(self.fc2(x))
