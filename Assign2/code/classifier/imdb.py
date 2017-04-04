@@ -68,10 +68,10 @@ class ImdbDataset(object):
         print("============== All reviews read into list ==============")
 
 
-        pickle.dump(self.data, open('data_imdb.pkl', 'wb'))
-        pickle.dump(self.target, open('target_imdb.pkl', 'wb'))
+        pickle.dump(self.data, open('data_imdb.pkl', 'wb'), protocol=2)
+        pickle.dump(self.target, open('target_imdb.pkl', 'wb'), protocol=2)
 #        print("Words in the vocabulary ",self.dictionary.word2idx )
-        pickle.dump(self.dictionary.word2idx, open('vocab_imdb.p', 'wb'))
+        pickle.dump(self.dictionary.word2idx, open('vocab_imdb.p', 'wb'), protocol=2)
         print("Data saved to pickle file")
 
     def processReviewText(self, text):
