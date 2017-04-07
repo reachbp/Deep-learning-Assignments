@@ -1,4 +1,5 @@
 import os
+import pickle
 import torch
 import numpy as np
 GLOVE_DIR = "../glove"
@@ -31,7 +32,9 @@ class Corpus(object):
         if pretrained :
             self.embedmatrix = self.getEmbedding(self.dictionary, emsize)
             print(type(self.embedmatrix))
-
+	# Saved the idxtowrod 
+	pickle.dump(self.dictionary.idx2word, open('idx2wordpenn.p', 'wb'))
+	print("Saved idx to word mapping for penn treebank")
     def getEmbedding(self, dictionary = None, emsize = 50):
         """
         :param dictionary: Dictionary which holds the mapping from id->word
@@ -50,6 +53,7 @@ class Corpus(object):
         print("Generated the embeddings matrix ", embeddings_matrix.shape)
 
         f.close()
+	
         return embeddings_matrix
 
 
