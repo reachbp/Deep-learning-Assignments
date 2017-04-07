@@ -19,6 +19,7 @@ parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
 parser.add_argument('--clip', type=float, default=0.5,
                     help='gradient clipping')
+
 parser.add_argument('--nhid', type=int, default=50,
                     help='humber of hidden units per layer')
 parser.add_argument('--epochs', type=int, default=6,
@@ -165,9 +166,8 @@ def test(epoch):
         loss.backward()
         test_loss += loss.data[0]
         pred = output.data.max(1)[1] # get the index of the max log-probability
-	print(pred)
         correct += pred.eq(target.data).cpu().sum()
-	y_true.extend(target.data.cpu().numpy())
+        y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
     print("Classification report") 
     print(metrics.classification_report(y_true, y_pred))

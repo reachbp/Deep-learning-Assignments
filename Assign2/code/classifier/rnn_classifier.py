@@ -55,13 +55,14 @@ class RNNModelComplex(nn.Module):
 
     def forward(self, input, hidden):
         emb = self.encoder(input)
+        print("Embedding size ", emb.size(), input.size())
         output, hidden = self.rnn(emb, hidden)
-        #print("Check point 1", output)
+        print("Check point 1", output.size(), hidden.size())
         output = output.view(-1,output.size(1)* output.size(2))
-        #print("Check point 2", output.size())
+        print("Check point 2", output.size())
         decoded = F.relu(self.decoder1(output))
         decoded = F.relu(self.decoder2(decoded))
-        #print("Check point 3", decoded.size())
+        print("Check point 3", decoded.size())
         return F.log_softmax(decoded), hidden
 
     def init_hidden(self, bsz):
