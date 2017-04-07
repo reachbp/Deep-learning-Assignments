@@ -163,30 +163,30 @@ def train(epoch):
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
 
 def test(epoch, dataset_loader):
-    correct = 0
+
     test_loss = 0
+    hidden = model.init_hidden(args.bptt)
+    correct = 0
     y_true = []
     y_pred = []
-    model.eval()
     for batch_idx, (data, target) in enumerate(dataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        output = model(data)
+        hidden = repackage_hidden(hidden)
+        output, hidden = model(data, hidden)
         loss = criterion(output, target)
-        # if epoch > 10:
-        #    reconstruct_wrong_sent(data.data, output.data.cpu().numpy(), target.data.cpu().numpy())
+        loss.backward()
         test_loss += loss.data[0]
-        pred = output.data.max(1)[1]  # get the index of the max log-probability
+        pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
         y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
     print("Classification report")
     print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(dataset_loader.dataset),
-        100. * correct / len(dataset_loader.dataset)))
-
+    test_loss, correct, len(dataset_loader.dataset),
+    100. * correct / len(dataset_loader.dataset)))
 
 for epoch in range(args.epochs):
     train(epoch)
