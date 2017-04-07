@@ -85,7 +85,7 @@ model = rnnmodel.RNNModelComplex(args.model, ntoken = ntokens, ninp = args.emsiz
 
 if args.cuda:
     model.cuda()
-
+print(model)
 '''
 input = Variable(torch.Tensor(64,100))
 hidden = model.init_hidden(64)
@@ -143,7 +143,7 @@ def train(epoch):
         train_loss += loss.data[0]
         optimizer.step()
 
-        if batch_idx % 10 == 0:
+        if batch_idx % 100 == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(trainDataset_loader.dataset),
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))

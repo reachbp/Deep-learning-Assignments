@@ -38,7 +38,7 @@ class RNNModelComplex(nn.Module):
         self.encoder = nn.Embedding(ntoken, ninp)
         self.rnn = getattr(nn, rnn_type)(ninp, nhid, nlayers, bias=False)
         self.decoder1 = nn.Linear(nhid*bptt, 500)
-        self.decoder2 = nn.Linear(500, 5)
+        self.decoder2 = nn.Linear(500, 2)
         self.init_weights()
 
         self.rnn_type = rnn_type
