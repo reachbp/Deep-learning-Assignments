@@ -28,19 +28,20 @@ def loadmodel():
     return embed_np_matrix, idx2word
 
 def saveTSNE(data ,  target):
-    X_tsne = TSNE(learning_rate=1).fit_transform(data)
-    
+    X_tsne = TSNE(learning_rate=500, n_iter= 5000, verbose=  1).fit_transform(data)
+    pickle.dump(X_tsne, open('tsne/tsnemat'+args.title+'.p', 'wb'))
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.scatter(X_tsne[:,0],X_tsne[:,1])
     for i, coord in enumerate(zip(X_tsne[:,0],X_tsne[:,1])):
          ax.annotate(target[i], xy = coord )
     plt.title('TSNE plot for model {}'.format(args.title))
-    plt.savefig('saved/'+args.title+'.png')
+    plt.savefig('tsne/'+args.title+'.png')
 def main():
     data, target = loadmodel()
     print("Loaded torch model into numpy tensor")
     saveTSNE(data, target)
-    print("TSNE saved as ")
+    print("TSNE saved as "+ args.title)
+    print("TSNE matrix saved as tsne/tsne"+args.title+".p")
 main()
 
