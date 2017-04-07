@@ -1,14 +1,15 @@
 __author__ = 'bharathipriyaa'
-from sklearn import metrics
-from sklearn.metrics import confusion_matrix
 import argparse
-import torch, pickle, math
+
+import math
 import numpy as np
-import torch.nn as nn
+import pickle
+import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms
+from sklearn import metrics
 from torch.autograd import Variable
+
 import rnn_classifier as rnnmodel
 
 # Training settings
@@ -53,22 +54,36 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 ###############################################################################
 # Load data
 ###############################################################################
-
 def create_dataset():
     alltrain_data_list = pickle.load(open("data_imdb.pkl", "rb"))
+    alltest_data_list = pickle.load(open("data_imdb_test.pkl", "rb"))
     alltrain_labels_list = np.array(pickle.load(open("target_imdb.pkl", "rb")))
-    data_list = np.ndarray((len(alltrain_data_list),args.bptt))
+    alltest_labels_list = np.array(pickle.load(open("target_imdb_test.pkl", "rb")))
+    data_list = np.ndarray((len(alltrain_data_list), args.bptt))
+    data_test_list = np.ndarray((len(alltest_data_list), args.bptt))
     for idx, data in enumerate(alltrain_data_list):
-        data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))] = alltrain_data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))]
+        data_list[idx][0:min(args.bptt, len(alltrain_data_list[idx]))] = alltrain_data_list[idx][
+                                                                         0:min(args.bptt, len(alltrain_data_list[idx]))]
+
+    for idx, data in enumerate(alltest_data_list):
+        data_test_list[idx][0:min(args.bptt, len(alltest_data_list[idx]))] = alltest_data_list[idx][0:min(args.bptt,
+                                                                                                          len(
+                                                                                                              alltest_data_list[
+                                                                                                                  idx]))]
     data_list = torch.from_numpy(data_list).long()
+    data_test_list = torch.from_numpy(data_test_list).long()
     labels_list = torch.from_numpy(alltrain_labels_list)
+    labels_test_list = torch.from_numpy(alltest_labels_list)
     l = len(data_list)
-    r = (int) (0.7 *l) 
+    r = (int)(0.7 * l)
     train_dataset = torch.utils.data.TensorDataset(data_list[1:r], labels_list[1:r])
     valid_dataset = torch.utils.data.TensorDataset(data_list[r:l], labels_list[r:l])
+    test_dataset = torch.utils.data.TensorDataset(data_test_list, labels_test_list)
     train_dataset_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
     val_dataset_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True)
-    return train_dataset_loader, val_dataset_loader
+    test_dataset_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+    return train_dataset_loader, val_dataset_loader, test_dataset_loader
+
 
 vocab = pickle.load(open("vocab_imdb.p", "rb"))
 trainDataset_loader, val_dataset_loader = create_dataset()
@@ -148,34 +163,35 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(trainDataset_loader.dataset),
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
 
-def test(epoch):
 
-    test_loss = 0
-    hidden = model.init_hidden(args.bptt)
+def test(epoch, dataset_loader):
     correct = 0
+    test_loss = 0
     y_true = []
-    y_pred = []	
-    for batch_idx, (data, target) in enumerate(val_dataset_loader):
+    y_pred = []
+    model.eval()
+    for batch_idx, (data, target) in enumerate(dataset_loader):
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        hidden = repackage_hidden(hidden)
-        output, hidden = model(data, hidden)
+        output = model(data)
         loss = criterion(output, target)
-        loss.backward()
+        # if epoch > 10:
+        #    reconstruct_wrong_sent(data.data, output.data.cpu().numpy(), target.data.cpu().numpy())
         test_loss += loss.data[0]
-        pred = output.data.max(1)[1] # get the index of the max log-probability
-	#print(pred)
+        pred = output.data.max(1)[1]  # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
-	y_true.extend(target.data.cpu().numpy())
+        y_true.extend(target.data.cpu().numpy())
         y_pred.extend(pred.cpu().numpy().squeeze())
-    print("Classification report") 
+    print("Classification report")
     print(metrics.classification_report(y_true, y_pred))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-    test_loss, correct, len(val_dataset_loader.dataset),
-    100. * correct / len(val_dataset_loader.dataset)))
+        test_loss, correct, len(dataset_loader.dataset),
+        100. * correct / len(dataset_loader.dataset)))
+
 
 for epoch in range(args.epochs):
     train(epoch)
-    test(epoch)
+    test(epoch, val_dataset_loader)
 
+test(1, test_dataset_loader)
