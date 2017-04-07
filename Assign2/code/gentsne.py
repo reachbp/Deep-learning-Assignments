@@ -23,12 +23,12 @@ def loadmodel():
     embed_matrix = model.encoder.weight
     embed_np_matrix = embed_matrix.data.cpu().numpy()
     idx2word = pickle.load(open('idx2wordpenn.p', 'rb')) 
-    print("Word to index diction")
-    print(idx2word)
-    return embed_np_matrix, idx2word
+    # print("Word to index diction")
+    # print(idx2word)
+    return embed_np_matrix[:100], idx2word[:100]
 
 def saveTSNE(data ,  target):
-    X_tsne = TSNE(learning_rate=500, n_iter= 5000, verbose=  1).fit_transform(data)
+    X_tsne = TSNE(learning_rate=500, n_iter= 5000, verbose=1).fit_transform(data)
     pickle.dump(X_tsne, open('tsne/tsnemat'+args.title+'.p', 'wb'))
     fig = plt.figure()
     ax = fig.add_subplot(111)
