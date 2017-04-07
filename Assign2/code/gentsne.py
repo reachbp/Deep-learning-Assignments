@@ -7,7 +7,7 @@ from sklearn.decomposition import PCA
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-import data, argparse
+import data, argparse, pickle 
 
 parser = argparse.ArgumentParser(description='TSNE generator for Torch model')
 parser.add_argument('--data', type=str, default='./data/penn',
@@ -22,20 +22,21 @@ def loadmodel():
     model = torch.load(args.model)
     embed_matrix = model.encoder.weight
     embed_np_matrix = embed_matrix.data.cpu().numpy()
-    corpus = data.Corpus(args.data)
-    return embed_np_matrix, corpus.dictionary.idx2word
+    idx2word = pickle.load(open('idx2wordpenn.p', 'rb')) 
+    print("Word to index diction")
+    print(idx2word)
+    return embed_np_matrix, idx2word
 
 def saveTSNE(data ,  target):
-    X_tsne = TSNE(learning_rate=100).fit_transform(data)
+    X_tsne = TSNE(learning_rate=1).fit_transform(data)
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
     plt.scatter(X_tsne[:,0],X_tsne[:,1])
     for i, coord in enumerate(zip(X_tsne[:,0],X_tsne[:,1])):
-        
-        ax.annotate(target[i], xy = coord )
+         ax.annotate(target[i], xy = coord )
     plt.title('TSNE plot for model {}'.format(args.title))
-    plt.savefig('saved/tsne.png')
+    plt.savefig('saved/'+args.title+'.png')
 def main():
     data, target = loadmodel()
     print("Loaded torch model into numpy tensor")
