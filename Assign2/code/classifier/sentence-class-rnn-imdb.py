@@ -1,15 +1,14 @@
 __author__ = 'bharathipriyaa'
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
 import argparse
-
-import math
+import torch, pickle, math
 import numpy as np
-import pickle
-import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from sklearn import metrics
+from torchvision import datasets, transforms
 from torch.autograd import Variable
-
 import rnn_classifier as rnnmodel
 
 # Training settings
@@ -86,7 +85,7 @@ def create_dataset():
 
 
 vocab = pickle.load(open("vocab_imdb.p", "rb"))
-trainDataset_loader, val_dataset_loader = create_dataset()
+trainDataset_loader, val_dataset_loader, test_dataset_loader = create_dataset()
 
 ###############################################################################
 # Build the model
@@ -163,7 +162,6 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(trainDataset_loader.dataset),
                 100. * batch_idx / len(trainDataset_loader), loss.data[0]))
 
-
 def test(epoch, dataset_loader):
     correct = 0
     test_loss = 0
@@ -195,3 +193,4 @@ for epoch in range(args.epochs):
     test(epoch, val_dataset_loader)
 
 test(1, test_dataset_loader)
+
