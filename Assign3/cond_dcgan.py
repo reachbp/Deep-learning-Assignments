@@ -188,6 +188,7 @@ print(netD)
 
 criterion = nn.BCELoss()
 condition = torch.FloatTensor(opt.batchSize)
+final_condition = torch.FloatTensor(opt.batchSize)
 input = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
 noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
 fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
@@ -208,6 +209,7 @@ label = Variable(label)
 noise = Variable(noise)
 fixed_noise = Variable(fixed_noise)
 condition = Variable(condition)
+final_condition = Variable(final_condition)
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -224,7 +226,8 @@ for epoch in range(opt.niter):
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         label.data.resize_(batch_size).fill_(real_label)
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
-
+        if epoch == 0:
+            final_condition.data.resize_(real_condition_cpu.size()).fill_(real_condition_cpu[0])
         output = netD(input, condition)
         errD_real = criterion(output, label)
         errD_real.backward()
@@ -247,7 +250,7 @@ for epoch in range(opt.niter):
         ###########################
         netG.zero_grad()
         label.data.fill_(real_label)  # fake labels are real for generator cost
-        output = netD(fake, condition)
+        output = netD(fake, final_condition)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.data.mean()
