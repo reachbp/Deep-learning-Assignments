@@ -226,10 +226,8 @@ for epoch in range(opt.niter):
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         label.data.resize_(batch_size).fill_(real_label)
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
-        if not set_label:
-            set_label = True
             print("label to use: ", real_condition_cpu[0])
-            final_condition.data.resize_(real_condition_cpu.size()).fill_(real_condition_cpu[0])
+            final_condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
         output = netD(input, condition)
         errD_real = criterion(output, label)
         errD_real.backward()
@@ -238,7 +236,7 @@ for epoch in range(opt.niter):
         # train with fake
         noise.data.resize_(batch_size, nz, 1, 1)
         noise.data.normal_(0, 1)
-        fake = netG(noise, condition)
+        fake = netG(noise, final_condition)
         label.data.fill_(fake_label)
         output = netD(fake.detach(), condition.detach())
         errD_fake = criterion(output, label)
@@ -252,7 +250,7 @@ for epoch in range(opt.niter):
         ###########################
         netG.zero_grad()
         label.data.fill_(real_label)  # fake labels are real for generator cost
-        output = netD(fake, final_condition)
+        output = netD(fake, condition)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.data.mean()
