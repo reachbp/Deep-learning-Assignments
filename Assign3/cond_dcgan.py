@@ -227,6 +227,7 @@ for epoch in range(opt.niter):
         label.data.resize_(batch_size).fill_(real_label)
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
         if epoch == 0:
+            print("label to use: ", real_condition_cpu[0])
             final_condition.data.resize_(real_condition_cpu.size()).fill_(real_condition_cpu[0])
         output = netD(input, condition)
         errD_real = criterion(output, label)
