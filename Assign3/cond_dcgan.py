@@ -238,7 +238,7 @@ for epoch in range(opt.niter):
         # train with fake
         noise.data.resize_(batch_size, nz, 1, 1)
         noise.data.normal_(0, 1)
-        fake = netG(noise, final_condition)
+        fake = netG(noise, condition)
         label.data.fill_(fake_label)
         output = netD(fake.detach(), condition.detach())
         errD_fake = criterion(output, label)
@@ -252,7 +252,7 @@ for epoch in range(opt.niter):
         ###########################
         netG.zero_grad()
         label.data.fill_(real_label)  # fake labels are real for generator cost
-        output = netD(fake, final_condition)
+        output = netD(fake, condition)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.data.mean()
@@ -265,7 +265,7 @@ for epoch in range(opt.niter):
             vutils.save_image(real_cpu,
                               '%s/real_samples.png' % opt.outf,
                               normalize=True)
-            fake = netG(fixed_noise, condition)
+            fake = netG(fixed_noise, final_condition)
             vutils.save_image(fake.data,
                               '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
                               normalize=True)
