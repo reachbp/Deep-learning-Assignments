@@ -209,9 +209,10 @@ class _netD(nn.Module):
         else:
 
             output = self.main(input)
-	    labels , classes = output.narrow(1, 0, 1).contiguous(), output.narrow(1, 1,11).contiguous()
-	    print(labels.size(), classes.size())
-        return labels.view(-1, 1), classes.view(-1,1)
+            labels , classes = output.narrow(1, 0, 1).contiguous(), output.narrow(1, 1,11).contiguous()
+            labels, classes =labels.view(-1, 1), classes.view(-1,10)
+            print("Inside Discriminator", labels.size(), classes.size())
+        return labels, classes
 
 
 netD = _netD(ngpu)
@@ -224,6 +225,7 @@ classcriterion = nn.NLLLoss()
 criterion = nn.BCELoss()
 fixed_condition = torch.FloatTensor(opt.batchSize)
 condition = torch.FloatTensor(opt.batchSize)
+condition_class = torch.LongTensor(opt.batchSize)
 input = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
 noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
 fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
@@ -247,6 +249,7 @@ noise = Variable(noise)
 fixed_noise = Variable(fixed_noise)
 fixed_condition = Variable(fixed_condition)
 condition = Variable(condition, requires_grad = False)
+condition_class = Variable(condition_class, requires_grad = False)
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -259,18 +262,23 @@ for epoch in range(opt.niter):
         # train with real
         netD.zero_grad()
         real_cpu, y = data
+        # One hot encoding for BCE criterion
         y_onehot = y.numpy()
         y_onehot = (np.arange(10) == y_onehot[:,None]).astype(np.float32)
+        y_onehot_class = (np.arange(10) == y_onehot[:,None]).astype(np.long)
         real_condition_cpu = torch.from_numpy(y_onehot)
+
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         label.data.resize_(batch_size).fill_(random.uniform(0.7, 1.2))
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
 
         output, classes = netD(input, condition)
-        print(type(classes), classes.size())
+        print("Checkpoint 1")
+        errd_real_class = classcriterion(classes, Variable(y, requires_grad = False))
         errD_real = criterion(output, label)
-	errd_read_class = classcriterion(classes, condition)
+        errD_real = errD_real + errd_real_class
+        #errd_read_class = classcriterion(Variable(torch.Tensor(64,10)), Variable(torch.LongTensor(64)))
         errD_real.backward()
         D_x = output.data.mean()
 
@@ -280,8 +288,10 @@ for epoch in range(opt.niter):
         noise.data.normal_(0, 1)
         fake = netG(noise, condition)
         label.data.fill_(random.uniform(0, 0.3))
-        output = netD(fake.detach(), condition.detach())
+        output, classes = netD(fake.detach(), condition.detach())
+        errd_fake_class = classcriterion(classes, Variable(y, requires_grad = False))
         errD_fake = criterion(output, label)
+        errD_fake = errD_fake + errd_fake_class
         errD_fake.backward()
         D_G_z1 = output.data.mean()
         errD = errD_real + errD_fake
@@ -292,7 +302,7 @@ for epoch in range(opt.niter):
         ###########################
         netG.zero_grad()
         label.data.fill_(random.uniform(.7, 1.2))  # fake labels are real for generator cost
-        output = netD(fake, condition)
+        output, classes= netD(fake, condition)
         errG = criterion(output, label)
         errG.backward()
         D_G_z2 = output.data.mean()
