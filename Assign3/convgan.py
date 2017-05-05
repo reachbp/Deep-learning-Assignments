@@ -3,7 +3,7 @@ from __future__ import print_function
 import argparse
 import os
 import random
-
+import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -144,6 +144,37 @@ if opt.netG != '':
     netG.load_state_dict(torch.load(opt.netG))
 print(netG)
 
+class _Classifier(nn.Module):
+    def __init__(self):
+        super(_Classifier, self).__init__()
+        self.main = nn.Sequential(
+	    # input is (nc) x 64 x 64
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
+         )
+    def forward(self, input):
+        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
+            #concatenated_input = torch.cat([input, condition], 1)
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            output = self.main(input)
+
+        return output.view(-1, 1)
 
 class _netD(nn.Module):
     def __init__(self, ngpu):
@@ -188,6 +219,7 @@ if opt.netD != '':
 print(netD)
 
 criterion = nn.BCELoss()
+fixed_condition = torch.FloatTensor(opt.batchSize)
 condition = torch.FloatTensor(opt.batchSize)
 input = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
 noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
@@ -203,12 +235,13 @@ if opt.cuda:
     criterion.cuda()
     input, label = input.cuda(), label.cuda()
     noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
+    fixed_condition.cuda()
 
 input = Variable(input)
 label = Variable(label)
 noise = Variable(noise)
 fixed_noise = Variable(fixed_noise)
-
+fixed_condition = Variable(fixed_condition)
 condition = Variable(condition)
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -221,7 +254,10 @@ for epoch in range(opt.niter):
         ###########################
         # train with real
         netD.zero_grad()
-        real_cpu, real_condition_cpu = data
+        real_cpu, y = data
+        y_onehot = y.numpy()
+        y_onehot = (np.arange(10) == y_onehot[:,None]).astype(np.float32)
+        real_condition_cpu = torch.from_numpy(y_onehot)
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         label.data.resize_(batch_size).fill_(random.uniform(0.7, 1.2))
@@ -261,13 +297,17 @@ for epoch in range(opt.niter):
                  errD.data[0], errG.data[0], D_x, D_G_z1, D_G_z2))
         if i % 100 == 0:
             vutils.save_image(real_cpu,
-                              '%s/real_samples.png' % opt.outf,
+                              'congan_out/real_samples.png' ,
                               normalize=True)
-            fake = netG(fixed_noise, condition)
+            fake = netG(fixed_noise, fixed_condition)
             vutils.save_image(fake.data,
-                              '%s/fake_samples_epoch_%03d.png' % (opt.outf, epoch),
+                              'congan_out/fake_samples_epoch_%03d.png' % ( epoch),
                               normalize=True)
 
+    if epoch == 5:
+        print("Classifier comes here")
+        #Start the classifier 
+        
     # do checkpointing
     torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (opt.outf, epoch))
     torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (opt.outf, epoch))
