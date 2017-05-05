@@ -126,6 +126,7 @@ class _NetGC(nn.Module):
 
     def forward(self, z, c):
 
+
         inputs = torch.cat([z,c], 1)
         #print("c size",c.size())
         #print("Input size",inputs.size())
@@ -173,13 +174,19 @@ label = torch.FloatTensor(opt.batchSize)
 real_label = 1
 fake_label = 0
 cnt = 0
+G_params = [Wzh, bzh, Whx, bhx]
+D_params = [Wxh, bxh, Why, bhy]
+params = G_params + D_params
 if opt.cuda:
-    netD.cuda()
-    netG.cuda()
+    netDC.cuda()
+    netGC.cuda()
     criterion.cuda()
     input, label = input.cuda(), label.cuda()
+    condition, fixed_condition = condition.cuda(), fixed_condition.cuda()
     noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
-
+    for p in params: 
+        p = p.cuda()    
+        print(type(p))
 input = Variable(input)
 label = Variable(label)
 criterion = nn.BCELoss()
@@ -199,8 +206,10 @@ optimizerD = optim.Adam(D_params, lr=opt.lr, betas=(opt.beta1, 0.999))
 def reset_grad():
     for p in params:
         p.grad.data.zero_()
+
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
+        print(i)
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
@@ -213,7 +222,7 @@ for epoch in range(opt.niter):
         print("Size of input", real_condition.size())
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
-        condition.data.copy_(real_condition)
+        condition.data.resize_(real_condition.size()).copy_(real_condition)
         label.data.resize_(batch_size).fill_(real_label)
         netGC.zero_grad()
         noise.data.resize_(batch_size, nz)
@@ -250,7 +259,7 @@ for epoch in range(opt.niter):
 
        
 
-    if epoch % 100 == 0:
+    if epoch % 2 == 0:
         print('Iter-{}; D_loss: {}; G_loss: {}'.format(epoch, D_loss.data.numpy(), G_loss.data.numpy()))
 
         c = np.zeros(shape=[opt.batchSize, y_dim], dtype='float32')
