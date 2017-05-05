@@ -211,7 +211,7 @@ class _netD(nn.Module):
             output = self.main(input)
             labels , classes = output.narrow(1, 0, 1).contiguous(), output.narrow(1, 1,11).contiguous()
             labels, classes =labels.view(-1, 1), classes.view(-1,10)
-            print("Inside Discriminator", labels.size(), classes.size())
+            #print("Inside Discriminator", labels.size(), classes.size())
         return labels, classes
 
 
@@ -262,11 +262,13 @@ for epoch in range(opt.niter):
         # train with real
         netD.zero_grad()
         real_cpu, y = data
-        # One hot encoding for BCE criterion
+	# One hot encoding for BCE criterion
         y_onehot = y.numpy()
         y_onehot = (np.arange(10) == y_onehot[:,None]).astype(np.float32)
         y_onehot_class = (np.arange(10) == y_onehot[:,None]).astype(np.long)
         real_condition_cpu = torch.from_numpy(y_onehot)
+        if opt.cuda:
+            real_cpu, y = real_cpu.cuda(), y.cuda()
 
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
@@ -274,7 +276,7 @@ for epoch in range(opt.niter):
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
 
         output, classes = netD(input, condition)
-        print("Checkpoint 1")
+        #print("Checkpoint 1")
         errd_real_class = classcriterion(classes, Variable(y, requires_grad = False))
         errD_real = criterion(output, label)
         errD_real = errD_real + errd_real_class
@@ -313,11 +315,11 @@ for epoch in range(opt.niter):
                  errD.data[0], errG.data[0], D_x, D_G_z1, D_G_z2))
         if i % 100 == 0:
             vutils.save_image(real_cpu,
-                              'congan_out/real_samples.png' ,
+                              'aux_out/real_samples.png' ,
                               normalize=True)
             fake = netG(fixed_noise, fixed_condition)
             vutils.save_image(fake.data,
-                              'congan_out/fake_samples_epoch_%03d.png' % ( epoch),
+                              'aux_out/fake_samples_epoch_%03d.png' % ( epoch),
                               normalize=True)
 
     if epoch == 5:
