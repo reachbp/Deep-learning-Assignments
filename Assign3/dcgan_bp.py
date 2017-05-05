@@ -127,15 +127,17 @@ class _NetGC(nn.Module):
     def forward(self, z, c):
 
 
-        inputs = torch.cat([z,c], 1)
-        #print("c size",c.size())
-        #print("Input size",inputs.size())
-
-        #print("Wzh size",Wzh.size())
-        h = F.relu(inputs @ Wzh + bzh.repeat(inputs.size(0), 1))
-        #print("Checkpoint1 from generator")
-        X = F.sigmoid(h @ Whx  + bhx.repeat(h.size(0), 1))
-        #print("Output from generator", X.size())
+        inputs = torch.cat([z,c], 1).cuda()
+#        print("c size",c.size())
+    #    print("Input size",type(inputs))
+   #     print("Wzh size",type(Wzh))
+        mat1 = torch.mm( inputs, Wzh.cuda())
+  #      print("Mat1 size", mat1.size())
+        mat2 = bzh.repeat(inputs.size(0),1).cuda()
+        h = F.relu(mat1 + mat2)
+ #       print("Checkpoint1 from generator")        
+        X = F.sigmoid(torch.mm(h , Whx.cuda())  + bhx.repeat(h.size(0), 1).cuda())
+#        print("Output from generator", X.size())
         return X
 
 Wxh = xavier_init(size=[X_dim + y_dim, h_dim])
@@ -149,14 +151,14 @@ class _NetDC(nn.Module):
         super(_NetDC, self).__init__()
     def forward(self, z, c):
 
-        z = z.view(64, 4096)
+        z = z.view(-1, 4096)
         #print("Inside discriminator",z.size())
-        inputs = torch.cat([z, c], 1)
+        inputs = torch.cat([z, c], 1).cuda()
         #print("Discriminator Input size",inputs.size())
         #print("Discriminator Wzh size",Wxh.size())
-        h = F.relu(inputs @ Wxh + bxh.repeat(inputs.size(0), 1))
-        y = F.sigmoid( h @  Why + bhy.repeat(h.size(0), 1))
-        #print("Output from Discriminator", y.size())
+        h = F.relu(inputs @ Wxh.cuda() + bxh.repeat(inputs.size(0), 1).cuda())
+        y = F.sigmoid( h @  Why.cuda() + bhy.repeat(h.size(0), 1).cuda())
+     #   print("Output from Discriminator", y.size())
         return y
 
 
@@ -184,9 +186,11 @@ if opt.cuda:
     input, label = input.cuda(), label.cuda()
     condition, fixed_condition = condition.cuda(), fixed_condition.cuda()
     noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
-    for p in params: 
-        p = p.cuda()    
-        print(type(p))
+    for param in G_params:
+        param = param.cuda()
+    for param in D_params: 
+        param = param.cuda()    
+       
 input = Variable(input)
 label = Variable(label)
 criterion = nn.BCELoss()
@@ -209,7 +213,7 @@ def reset_grad():
 
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
-        print(i)
+ #       print(i)
         ############################
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
@@ -219,7 +223,7 @@ for epoch in range(opt.niter):
         y_onehot = y.numpy()
         y_onehot = (np.arange(10) == y_onehot[:,None]).astype(np.float32)
         real_condition = torch.from_numpy(y_onehot)
-        print("Size of input", real_condition.size())
+#        print("Size of input", real_condition.size())
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         condition.data.resize_(real_condition.size()).copy_(real_condition)
@@ -232,8 +236,10 @@ for epoch in range(opt.niter):
         D_real = netDC(input, condition)
         D_fake = netDC(G_sample, condition)
 
-        D_loss_real = criterion(D_real, ones_label)
-        D_loss_fake = criterion(D_fake, zeros_label)
+        label.data.resize_(batch_size).fill_(real_label)
+        D_loss_real = criterion(D_real, label)
+        label.data.resize_(batch_size).fill_(fake_label)
+        D_loss_fake = criterion(D_fake, label)
         D_loss = D_loss_real + D_loss_fake
 
         D_loss.backward()
@@ -248,7 +254,8 @@ for epoch in range(opt.niter):
         
         G_sample = netGC(noise, condition)
         D_fake = netDC(G_sample, condition)
-        G_loss = criterion(D_fake, ones_label)
+        label.data.resize_(batch_size).fill_(real_label)
+        G_loss = criterion(D_fake, label)
 
         G_loss.backward()
         optimizerG.step()
