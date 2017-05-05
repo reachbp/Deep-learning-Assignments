@@ -213,7 +213,7 @@ final_condition = Variable(final_condition)
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-final_condition.data.resize_(real_condition_cpu.size()).fill_(1.0)
+final_condition.data.resize_(opt.batchSize).fill_(1.0)
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
         ############################
