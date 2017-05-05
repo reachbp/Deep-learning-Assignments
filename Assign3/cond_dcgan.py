@@ -213,7 +213,7 @@ final_condition = Variable(final_condition)
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-set_label = False
+final_condition.data.resize_(real_condition_cpu.size()).fill_(1.0)
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
         ############################
@@ -226,10 +226,6 @@ for epoch in range(opt.niter):
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         label.data.resize_(batch_size).fill_(real_label)
         condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
-        if not set_label:
-            set_label = True
-            print("label to use: ", real_condition_cpu)
-            final_condition.data.resize_(real_condition_cpu.size()).copy_(real_condition_cpu)
         output = netD(input, condition)
         errD_real = criterion(output, label)
         errD_real.backward()
