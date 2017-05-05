@@ -14,7 +14,6 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', required=True, help='cifar10 | lsun | imagenet | folder | lfw ')
 parser.add_argument('--dataroot', required=True, help='path to dataset')
@@ -26,6 +25,7 @@ parser.add_argument('--ngf', type=int, default=64)
 parser.add_argument('--ndf', type=int, default=64)
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate, default=0.0002')
+parser.add_argument('--momentum', type=float, default=0.0, help='momentum, default=0.0')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
@@ -106,34 +106,20 @@ class _netG(nn.Module):
         super(_netG, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            # input is Z, going into a convolution
-            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(ngf * 8),
+            nn.Linear(nz + 10, 8000),
             nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 4),
+            nn.Linear(8000, 8000),
             nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ngf),
-            nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
-            nn.Tanh()
+            nn.Linear(8000, 3 * 32 * 32),
+            
             # state size. (nc) x 64 x 64
         )
 
     def forward(self, input, condition):
-        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
-            concatenated_input = torch.cat([input, condition], 1)
-            output = nn.parallel.data_parallel(self.main, concatenated_input, range(self.ngpu))
-        else:
-            output = self.main(input)
+      
+        if self.ngpu >= 1:
+            concatenated_input = Variable(torch.cat([input.data.cpu(), condition.data.cpu()], 1).cuda())
+            output = self.main(concatenated_input).view(-1,3,32,32)
         return output
 
 
@@ -148,33 +134,20 @@ class _netD(nn.Module):
         super(_netD, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-
-            # input is (nc) x 64 x 64
-            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Linear(3 * 32 * 32 + 10, 1600),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1600, 1600),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(1600, 1),
             nn.Sigmoid()
         )
 
     def forward(self, input, condition):
-        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
-            concatenated_input = torch.cat([input, condition], 1)
-            output = nn.parallel.data_parallel(self.main, concatenated_input, range(self.ngpu))
-        else:
-            output = self.main(input)
+        if  self.ngpu >= 1:
+            concatenated_input = Variable(torch.cat((input.data.cpu().view(-1,3*32*32), condition.data.cpu()), 1).cuda())
+            output = self.main(concatenated_input)
 
         return output.view(-1, 1)
 
@@ -188,8 +161,8 @@ print(netD)
 criterion = nn.BCELoss()
 condition = torch.FloatTensor(opt.batchSize, 10)
 input = torch.FloatTensor(opt.batchSize, 3, opt.imageSize, opt.imageSize)
-noise = torch.FloatTensor(opt.batchSize, nz, 1, 1)
-fixed_noise = torch.FloatTensor(opt.batchSize, nz, 1, 1).normal_(0, 1)
+noise = torch.FloatTensor(opt.batchSize, nz)
+fixed_noise = torch.FloatTensor(opt.batchSize, nz).normal_(0, 1)
 label = torch.FloatTensor(opt.batchSize)
 real_label = 1
 fake_label = 0
@@ -208,12 +181,12 @@ noise = Variable(noise)
 fixed_noise = Variable(fixed_noise)
 condition = Variable(condition)
 # setup optimizer
-optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
-optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+#optimizerD = optim.Adam(netD.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+#optimizerG = optim.Adam(netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+optimizerD = optim.SGD(netD.parameters(), lr=opt.lr, momentum=.7)
+optimizerG = optim.SGD(netG.parameters(), lr=opt.lr, momentum=.7)
 c = np.zeros(shape=[opt.batchSize, 10], dtype='float32')
 c[:,0] = 1.
-print(torch.from_numpy(c).size())
-print(condition.data.size())
 final_condition = Variable(torch.from_numpy(c))
 for epoch in range(opt.niter):
     for i, data in enumerate(dataloader, 0):
@@ -234,7 +207,7 @@ for epoch in range(opt.niter):
         D_x = output.data.mean()
 
         # train with fake
-        noise.data.resize_(batch_size, nz, 1, 1)
+        noise.data.resize_(batch_size, nz)
         noise.data.normal_(0, 1)
         fake = netG(noise, condition)
         label.data.fill_(fake_label)
@@ -255,6 +228,8 @@ for epoch in range(opt.niter):
         errG.backward()
         D_G_z2 = output.data.mean()
         optimizerG.step()
+        optimizerD = optim.SGD(netD.parameters(), lr=max(opt.lr/ 1.000004, 0.000001), momentum= min(opt.momentum + 0.0008, 0.7))
+        optimizerD = optim.SGD(netG.parameters(), lr=max(opt.lr/ 1.000004, 0.000001), momentum= min(opt.momentum + 0.0008, 0.7))
 
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f D(x): %.4f D(G(z)): %.4f / %.4f'
               % (epoch, opt.niter, i, len(dataloader),
