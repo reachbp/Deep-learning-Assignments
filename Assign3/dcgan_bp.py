@@ -197,6 +197,8 @@ criterion = nn.BCELoss()
 condition = Variable(condition)
 noise = Variable(noise)
 fixed_noise = Variable(fixed_noise)
+fixed_noise.data.resize_(opt.batchSize, nz)
+fixed_noise.data.normal_(0, 1)
 fixed_condition = Variable(fixed_condition)
 G_params = [Wzh, bzh, Whx, bhx]
 D_params = [Wxh, bxh, Why, bhy]
@@ -218,12 +220,12 @@ for epoch in range(opt.niter):
         # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
         ###########################
         # train with real
+        
         netDC.zero_grad()
         real_cpu, y = data
         y_onehot = y.numpy()
         y_onehot = (np.arange(10) == y_onehot[:,None]).astype(np.float32)
         real_condition = torch.from_numpy(y_onehot)
-#        print("Size of input", real_condition.size())
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
         condition.data.resize_(real_condition.size()).copy_(real_condition)
@@ -263,34 +265,16 @@ for epoch in range(opt.niter):
 
         # Housekeeping - reset gradient
         netGC.zero_grad()
+        
 
-       
-
-    if epoch % 2 == 0:
-        print('Iter-{}; D_loss: {}; G_loss: {}'.format(epoch, D_loss.data.numpy(), G_loss.data.numpy()))
-
+    if epoch % 1 == 0:
+        print('Iter-{}; D_loss: {}; G_loss: {}'.format(epoch, D_loss.data.cpu().numpy(), G_loss.data.cpu().numpy()))
+       # fixed_noise = torch.FloatTensor(opt.batchSize, nz).normal_(0, 1)
         c = np.zeros(shape=[opt.batchSize, y_dim], dtype='float32')
         c[:, np.random.randint(0, 10)] = 1.
-        c = Variable(torch.from_numpy(c))
-        samples = netGC(noise, c).data.numpy()[:16]
-
-        fig = plt.figure(figsize=(4, 4))
-        gs = gridspec.GridSpec(4, 4)
-        gs.update(wspace=0.05, hspace=0.05)
-
-        for i, sample in enumerate(samples):
-            ax = plt.subplot(gs[i])
-            plt.axis('off')
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-            ax.set_aspect('equal')
-            plt.imshow(sample.reshape(64, 64), cmap='Greys_r')
-
-        if not os.path.exists('out/'):
-            os.makedirs('out/')
-
-        plt.savefig('out/{}.png'.format(str(cnt).zfill(3)), bbox_inches='tight')
-        cnt += 1
-        plt.close(fig)
-
+        c = Variable(torch.from_numpy(c).cuda())
+        print(fixed_noise.size(), c.size()) 
+        fake = netGC(fixed_noise, c) #.data.cpu().numpy()[:16]
+        vutils.save_image(fake.data,
+                              'out/fake_samples_epoch_%03d.png' % ( epoch))
 
