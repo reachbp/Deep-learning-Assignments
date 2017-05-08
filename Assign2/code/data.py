@@ -1,8 +1,12 @@
 import os
 import pickle
-import torch
+
 import numpy as np
+import torch
+
 GLOVE_DIR = "../glove"
+
+
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -19,8 +23,7 @@ class Dictionary(object):
 
 
 class Corpus(object):
-    def __init__(self, path, pretrained = False, emsize = 50):
-
+    def __init__(self, path, pretrained=False, emsize=50):
 
         self.dictionary = Dictionary()
         self.train = self.tokenize(os.path.join(path, 'train.txt'))
@@ -29,20 +32,21 @@ class Corpus(object):
         self.pretrained = pretrained
         self.emsize = emsize
         self.embedmatrix = None
-        if pretrained :
+        if pretrained:
             self.embedmatrix = self.getEmbedding(self.dictionary, emsize)
             print(type(self.embedmatrix))
-	# Saved the idxtowrod 
-	pickle.dump(self.dictionary.idx2word, open('idx2wordpenn.p', 'wb'))
-	print("Saved idx to word mapping for penn treebank")
-    def getEmbedding(self, dictionary = None, emsize = 50):
+        # Saved the idxtowrod
+        pickle.dump(self.dictionary.idx2word, open('idx2wordpenn.p', 'wb'))
+        print("Saved idx to word mapping for penn treebank")
+
+    def getEmbedding(self, dictionary=None, emsize=50):
         """
         :param dictionary: Dictionary which holds the mapping from id->word
         :param emsize: Size of the embedding
         :return: Embedding matrix of size len(dictionary)xemsize
         """
         embeddings_matrix = np.zeros((len(dictionary), emsize))
-        #f = open(os.path.join(GLOVE_DIR, 'glove.6B.{}d.txt'.format(emsize)))
+        # f = open(os.path.join(GLOVE_DIR, 'glove.6B.{}d.txt'.format(emsize)))
         f = open(os.path.join('./data/penn/', 'embedMatrix{}.txt'.format(emsize)))
         for line in f:
             values = line.split()
@@ -53,9 +57,8 @@ class Corpus(object):
         print("Generated the embeddings matrix ", embeddings_matrix.shape)
 
         f.close()
-	
-        return embeddings_matrix
 
+        return embeddings_matrix
 
     def tokenize(self, path):
         """Tokenizes a text file."""
@@ -84,7 +87,7 @@ class Corpus(object):
 
 def main():
     emsize = 300
-    corpus = Corpus('./data/penn', pretrained = True, emsize = emsize)
+    corpus = Corpus('./data/penn', pretrained=True, emsize=emsize)
     """ Saved the embedding matrix along with words """
     with open('./data/penn/embedMatrix{}.txt'.format(emsize), 'w') as f:
         for word in corpus.dictionary.word2idx.keys():
@@ -94,4 +97,3 @@ def main():
             f.write(line)
             f.write(val + '\n')
     f.close()
-
